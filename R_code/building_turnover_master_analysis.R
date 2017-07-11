@@ -73,7 +73,7 @@ system.time({
 # 
 # # TEMP: set wd for local testing
 # 
-# a basic function to get the filepath of the current script
+# # a basic function to get the filepath of the current script
 # csf <- function() {
 #   # adapted from http://stackoverflow.com/a/32016824/2292993
 #   cmdArgs = commandArgs(trailingOnly = FALSE)
@@ -184,100 +184,100 @@ sheet26 <- createSheet(output.wb, "2050Stock")
 
 saveWorkbook(output.wb, output.filename)
 
-# ############ LOAD & CLEAN SUPPLEMENTARY DATA ############
-# 
-# # set name of data file with sheets containing required tables and input data
-# input.datafile <- "../supp_data/Steps_BuildingStockTurnover_7_6.xlsx"
-# 
-# ## Cutoff yrs table
-# # load cutoff yrs table
-# cutoff.yrs <- read.xlsx(file = input.datafile,
-#                        sheetIndex = 2)
-# # change col class to character
-# cutoff.yrs$TYPE <- as.character(cutoff.yrs$TYPE)
-# 
-# # change type names for consistency
-# cutoff.yrs$TYPE[cutoff.yrs$TYPE == "Food Sale"] <- "Food.Sale"
-# cutoff.yrs$TYPE[cutoff.yrs$TYPE == "Food Srv"] <- "Food.Srv"
-# cutoff.yrs$TYPE[cutoff.yrs$TYPE == "Comm Misc"] <- "Comm.Misc"
-# cutoff.yrs$TYPE[cutoff.yrs$TYPE == "Heath"] <- "Health"
-# 
-# # change col names
-# names(cutoff.yrs) <- c("TYPE", "Cut20", "Cut50")
-# 
-# ## Growth multiplier tables
-# # load 2020 multipliers
-# g.mult.20 <- read.xlsx(file = input.datafile,
-#                        sheetName = "2020growthmult", colClasses = "character")
-# 
-# # load 2050 multipliers
-# g.mult.50 <- read.xlsx(file = input.datafile,
-#                        sheetName = "2050growthmult", colClasses = "character")
-# 
-# # change class of county cols to character
-# g.mult.20$County <- as.character(g.mult.20$County)
-# g.mult.50$County <- as.character(g.mult.50$County)
-# 
-# # elim whitespace chars from county names
-# g.mult.20$County <- trimws(g.mult.20$County)
-# g.mult.50$County <- trimws(g.mult.50$County)
-# 
-# # change class of numeric cols to numeric
-# for (col in 2:ncol(g.mult.20)) { 
-#   g.mult.20[, col] <- as.numeric(g.mult.20[, col])
-# }
-# 
-# for (col in 2:ncol(g.mult.50)) { 
-#   g.mult.50[, col] <- as.numeric(g.mult.50[, col])
-# }
-# 
-# # change building type names in multiplier tables for consistency
-# type.names <- names(g.mult.20)
-# 
-# ## EUI tables
-# # load 2016 EUI data
-# eui.16 <- read.xlsx(file = input.datafile,
-#                        sheetName = "EUI2016", colClasses = "character")
-# 
-# # load 2020 EUI data
-# eui.20 <- read.xlsx(file = input.datafile,
-#                        sheetName = "EUI2020", colClasses = "character")
-# # load 2050 EUI data
-# eui.50 <- read.xlsx(file = input.datafile,
-#                        sheetName = "EUI2050", colClasses = "character")
-# 
-# # set col classes of EUI tables
-# eui.16$Join <- as.character(paste(eui.16$Join))
-# eui.20$Join <- as.character(paste(eui.20$Join))
-# eui.50$Join <- as.character(paste(eui.50$Join))
-# 
-# ## County abbreviation codes
-# # load county name/abbreviation table
-# county.codes.df <- read.xlsx(file = input.datafile, sheetName = "CountyCodes",
-#                              colClasses = "character")
-# 
-# # set col classes to char
-# county.codes.df$county.name <- as.character(county.codes.df$county.name)
-# county.codes.df$county.code <- as.character(county.codes.df$county.code)
-# 
-# 
+############ LOAD & CLEAN SUPPLEMENTARY DATA ############
+
+# set name of data file with sheets containing required tables and input data
+input.datafile <- "../supp_data/Steps_BuildingStockTurnover_7_6.xlsx"
+
+## Cutoff yrs table
+# load cutoff yrs table
+cutoff.yrs <- read.xlsx(file = input.datafile,
+                       sheetIndex = 2)
+# change col class to character
+cutoff.yrs$TYPE <- as.character(cutoff.yrs$TYPE)
+
+# change type names for consistency
+cutoff.yrs$TYPE[cutoff.yrs$TYPE == "Food Sale"] <- "Food.Sale"
+cutoff.yrs$TYPE[cutoff.yrs$TYPE == "Food Srv"] <- "Food.Srv"
+cutoff.yrs$TYPE[cutoff.yrs$TYPE == "Comm Misc"] <- "Comm.Misc"
+cutoff.yrs$TYPE[cutoff.yrs$TYPE == "Heath"] <- "Health"
+
+# change col names
+names(cutoff.yrs) <- c("TYPE", "Cut20", "Cut50")
+
+## Growth multiplier tables
+# load 2020 multipliers
+g.mult.20 <- read.xlsx(file = input.datafile,
+                       sheetName = "2020growthmult", colClasses = "character")
+
+# load 2050 multipliers
+g.mult.50 <- read.xlsx(file = input.datafile,
+                       sheetName = "2050growthmult", colClasses = "character")
+
+# change class of county cols to character
+g.mult.20$County <- as.character(g.mult.20$County)
+g.mult.50$County <- as.character(g.mult.50$County)
+
+# elim whitespace chars from county names
+g.mult.20$County <- trimws(g.mult.20$County)
+g.mult.50$County <- trimws(g.mult.50$County)
+
+# change class of numeric cols to numeric
+for (col in 2:ncol(g.mult.20)) {
+  g.mult.20[, col] <- as.numeric(g.mult.20[, col])
+}
+
+for (col in 2:ncol(g.mult.50)) {
+  g.mult.50[, col] <- as.numeric(g.mult.50[, col])
+}
+
+# change building type names in multiplier tables for consistency
+type.names <- names(g.mult.20)
+
+## EUI tables
+# load 2016 EUI data
+eui.16 <- read.xlsx(file = input.datafile,
+                       sheetName = "EUI2016", colClasses = "character")
+
+# load 2020 EUI data
+eui.20 <- read.xlsx(file = input.datafile,
+                       sheetName = "EUI2020", colClasses = "character")
+# load 2050 EUI data
+eui.50 <- read.xlsx(file = input.datafile,
+                       sheetName = "EUI2050", colClasses = "character")
+
+# set col classes of EUI tables
+eui.16$Join <- as.character(paste(eui.16$Join))
+eui.20$Join <- as.character(paste(eui.20$Join))
+eui.50$Join <- as.character(paste(eui.50$Join))
+
+## County abbreviation codes
+# load county name/abbreviation table
+county.codes.df <- read.xlsx(file = input.datafile, sheetName = "CountyCodes",
+                             colClasses = "character")
+
+# set col classes to char
+county.codes.df$county.name <- as.character(county.codes.df$county.name)
+county.codes.df$county.code <- as.character(county.codes.df$county.code)
+
+
 ############ LOAD & PROCESS INPUT SHAPEFILES IN PARALLEL ############
 
 # set up processing que from shapefiles in input_shapefiles dir
 dir.files <- list.files("../input_shapefiles/")
 in.shapes <- dir.files[CheckExt(dir.files)]
   
-# initialize parallel backend
-no.cores <- (detectCores() - 1) 
-cl <- makeCluster(no.cores, type = "SOCK", outfile="../run_logs/log.txt")
-registerDoSNOW(cl)
+# # initialize parallel backend
+# no.cores <- (detectCores() - 1) 
+# cl <- makeCluster(no.cores, type = "SOCK", outfile="../run_logs/log.txt")
+# registerDoSNOW(cl)
 
 # iterate over shapefiles in 'input_shapefiles' directory
-output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
+output.metalist <- foreach(shapefile = in.shapes[1:1],
           .packages = c("plyr", "dplyr", "rgdal", "sp",
                         "raster",  "rgeos", "xlsx", "doSNOW"),
           .export = c("eui.16", "eui.20", "eui.50",
-                      "output.wb")) %dopar% {
+                      "output.wb")) %do% {
   
   ############ LOAD FUNCTIONS ############
   source("bt_functions.R")
@@ -332,19 +332,20 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   # change column classes
   cnt.raw.df$TYPE <- as.character(cnt.raw.df$TYPE)
   cnt.raw.df$Yrfinal <- as.character(cnt.raw.df$Yrfinal)
-  cnt.raw.df$LOTAREA <- as.numeric(cnt.raw.df$LOTAREA)
+  cnt.raw.df$LOTAREA <- as.numeric(as.character(cnt.raw.df$LOTAREA))
   cnt.raw.df$APN <- as.character(paste(cnt.raw.df$APN))
   cnt.raw.df$Typef <- as.character(cnt.raw.df$Typef)
   cnt.raw.df$POLY_AREA <- as.numeric(cnt.raw.df$POLY_AREA)
   cnt.raw.df$POLY_AREA <- round(cnt.raw.df$POLY_AREA, 4)
   
+  # change NAs to zeros in applicable numeric cols
+  cnt.raw.df$LOTAREA[is.na(cnt.raw.df$LOTAREA)] <- 0
   
   # change building type names in parcel data for consistency
   cnt.raw.df$TYPE[cnt.raw.df$TYPE == "Food Srv"] <- "Food.Srv"
   cnt.raw.df$TYPE[cnt.raw.df$TYPE == "Food Sale"] <- "Food.Sale"
   cnt.raw.df$TYPE[cnt.raw.df$TYPE == "Comm Misc"] <- "Comm.Misc"
   cnt.raw.df$TYPE[cnt.raw.df$TYPE == "college"] <- "College"
-  
   
   
   # init list of dfs for outputting building stock data in 2016, 2020 and 2050
@@ -415,19 +416,6 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   cnt.raw.df$Bin20 <- NA
   cnt.raw.df$Bin50 <- NA
   
-  
-  # # iterate over all parcels
-  # pass <- 1
-  # for (p in 1:nrow(cnt.raw.df)) {
-  #   par <- cnt.raw.df[p,]
-  #   print(sprintf("Pass: %s Checking parcel with APN: %s", pass, par$APN))
-  #   yr <- as.numeric(as.character(par$Yrfinal))
-  #   cut <- as.numeric(as.character(par$Cut20))
-  #   par$Bin20 <- CheckIfRemains(yr, cut)
-  #   cnt.raw.df[p,] <- par
-  #   pass <- pass + 1
-  # }
-  
   # check for which parcels reamin in 2020
   cnt.raw.df$Bin20 <- CheckIfRemains(cnt.raw.df$Yrfinal, cnt.raw.df$Cut20)
   
@@ -444,22 +432,6 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   LOTAREA <- as.numeric(as.character(cnt.raw.df$LOTAREA))
   TYPE <- as.character(cnt.raw.df$TYPE)
   cnt.raw.df$Status20 <- unlist(AssignStatus(BinYEAR, BAREA, LOTAREA, TYPE))
-  
-  
-  # pass <- 1
-  # for (p in 1:nrow(cnt.raw.df)) {
-  #   par <- cnt.raw.df[p,]
-  #   print(sprintf("Pass: %s Checking parcel with APN: %s", pass, par$APN))
-  #   BinYEAR <- as.numeric(as.character(par$Bin20))
-  #   BAREA <- as.numeric(as.character(par$BArea))
-  #   LOTAREA <- as.numeric(as.character(par$LOTAREA))
-  #   TYPE <- as.character(par$TYPE)
-  #   par$Status20 <- AssignStatus(BinYEAR, BAREA, LOTAREA, TYPE)
-  #   cnt.raw.df[p,] <- par
-  #   pass <- pass + 1
-  # }
-  
-  
   
   
   ## Step 5: Generate summary stats for parcels 2020, by Status20
@@ -554,7 +526,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         print(sprintf("Vacated building on parcel with APN: %s", switched.apn))
         
         # check updated floorspace difference following switch
-        t.diff <- CheckDiff(cnt.raw.df, t, status = "Remain",
+        t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain"),
                             year = 2020, area.col = "NewArea")
         print(sprintf("Updated floorspace difference: %s", t.diff))
       }
@@ -596,7 +568,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         print("GTD ratio is <1; rebuilding demos to close floorspace gap")
         
         # init floorspace difference tracker for this usetype
-        t.diff <- CheckDiff(cnt.raw.df, t, status = "Remain",
+        t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain"),
                             year=2020, area.col="NewArea")
         
         # rebuild demo buildings until difference gap is closed
@@ -695,15 +667,16 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         while ((t.diff > 0) & (avail.lots)) {
           res <- ConvertLot(cnt.raw.df, type = t, btl.ratio, year=2020, 
                             from.area.col="BArea", to.area.col="NewArea")
-          cnt.raw.df <- res[[1]] 
-          converted.apn <- res[[2]]
-          print(sprintf("Allocated FS from open lot on parcel with APN: %s", 
-                        converted.apn))
-          
           # check if no lots were available to convert
-          if (res == "None") {
+          if (res[[1]] == "None") {
             avail.lots = FALSE
+          
           } else {
+            # update master parcel df
+            cnt.raw.df <- res[[1]] 
+            converted.apn <- res[[2]]
+            print(sprintf("Allocated FS from open lot on parcel with APN: %s", 
+                          converted.apn))
             
             # update Yrfinal and Bin50 fields of parcel with converted lot area
             converted <- cnt.raw.df[(cnt.raw.df$APN == converted.apn), ]
@@ -735,14 +708,15 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
           # convert vacant parcel to active floorspace
           res <- FillVacant(cnt.raw.df, to.type = t, 
                             btl.ratio = btl.ratio, year = 2020)
-          cnt.raw.df <- res[[1]]
-          filled.apn <- res[[2]]
-          print(sprintf("Allocated FS from vacant lot on parcel with APN: %s", 
-                        filled.apn))
           
-          if (res == "None") {
+          if (res[[1]] == "None") {
             avail.vacancies <- FALSE
           } else {
+            # update parcel data after vacancy filled
+            cnt.raw.df <- res[[1]]
+            filled.apn <- res[[2]]
+            print(sprintf("Allocated FS from vacant lot on parcel with APN: %s", 
+                          filled.apn))
             # check floorspace difference
             t.diff <- CheckDiff(cnt.raw.df, t, 
                                 status = c("Remain", "Rebuild", 
@@ -1002,7 +976,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         print(sprintf("Vacated building on parcel with APN: %s", switched.apn))
         
         # check updated floorspace difference following switch
-        t.diff <- CheckDiff(cnt.raw.df, t, status = "Remain", 
+        t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain"), 
                             year=2050, area.col="FNArea.50")
         print(sprintf("Updated floorspace difference: %s", t.diff))
         
@@ -1047,7 +1021,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         print("GTD ratio is <1; rebuilding demos to close floorspace gap")
         
         # init floorspace difference tracker for this usetype
-        t.diff <- CheckDiff(cnt.raw.df, t, status = "Remain",
+        t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain"),
                             year=2050, area.col="FNArea.50")
         
         # rebuild demo buildings until difference gap is closed
@@ -1143,15 +1117,17 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         while ((t.diff > 0) & (avail.lots)) {
           res <- ConvertLot(cnt.raw.df, type = t, btl.ratio, year=2050,
                             from.area.col="NewArea", to.area.col="FNArea.50")
-          cnt.raw.df <- res[[1]] 
-          converted.apn <- res[[2]]
-          print(sprintf("Allocated FS from open lot on parcel with APN: %s", 
-                        converted.apn))
           
           # check if no lots were available to convert
-          if (res == "None") {
+          if (res[[1]] == "None") {
             avail.lots = FALSE
+
           } else {
+            # update master parcel df
+            cnt.raw.df <- res[[1]] 
+            converted.apn <- res[[2]]
+            print(sprintf("Allocated FS from open lot on parcel with APN: %s", 
+                          converted.apn))
             
             # update Yrfinal and Bin50 fields of parcel with converted lot area
             converted <- cnt.raw.df[(cnt.raw.df$APN == converted.apn), ]
@@ -1182,14 +1158,17 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
           # convert vacant parcel to active floorspace
           res <- FillVacant(cnt.raw.df, to.type = t, 
                             btl.ratio = btl.ratio, year = 2050)
-          cnt.raw.df <- res[[1]]
-          filled.apn <- res[[2]]
-          print(sprintf("Allocated FS from vacant lot on parcel with APN: %s", 
+          if (res[[1]] == "None") {
+            avail.vacancies <- FALSE
+          
+          } else {
+          # update parcel data
+            cnt.raw.df <- res[[1]]
+            filled.apn <- res[[2]]
+            print(sprintf("Allocated FS from vacant lot on parcel with APN: %s", 
                         filled.apn))
           
-          if (res == "None") {
-            avail.vacancies <- FALSE
-          } else {
+         
             # check floorspace difference
             t.diff <- CheckDiff(cnt.raw.df, t, 
                                 status = c("Remain", "Rebuild", 
