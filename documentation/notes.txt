@@ -1,0 +1,23 @@
+# NOTES:
+# - in the ConvertLot20 function, does this handle ranking within the
+# Condo/MF case properly?
+
+# - question about formatting of tabular data in 2020Rebuild sheet of output
+
+# - question about Deactivated2020 sheet of output df
+# - if fs diff is negative should vacated building statuses be changed to
+# deactivated or vacant?
+
+# -791 - should lotarea (and BArea) fields be changes with conversions?
+
+# -when assigning EUI vintages, how should 2020 building be assigned?
+# - is there supposed to be a condition for these in the EUIVint tab?
+
+# three letter county codes?
+
+# statewide btl ratios table?
+
+# 2016 College building stock numbers are inconsistent between
+model output and your sample spreadsheet
+
+# PUD usetype in summary tables?
