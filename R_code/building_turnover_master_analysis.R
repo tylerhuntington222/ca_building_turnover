@@ -11,7 +11,7 @@ system.time({
 
 # address "ifBtoL is null or 0, use state average for that usetype"
   
-# - Search for NewArea and replace with NewArea.20
+# - Search for BArea.20 and replace with BArea.20.20
   
 # join agroups to parcel data
 
@@ -74,38 +74,42 @@ system.time({
 
 #-----------------------------------------------------------------------------#
 
-# TEMP: set wd for local testing
+# ########## TEMP: set wd for local testing ########## 
+# 
+# # a basic function to get the filepath of the current script
+# csf <- function() {
+#   # adapted from http://stackoverflow.com/a/32016824/2292993
+#   cmdArgs = commandArgs(trailingOnly = FALSE)
+#   needle = "--file="
+#   match = grep(needle, cmdArgs)
+#   if (length(match) > 0) {
+#     # Rscript via command line
+#     return(normalizePath(sub(needle, "", cmdArgs[match])))
+#   } else {
+#     ls_vars = ls(sys.frames()[[1]])
+#     if ("fileName" %in% ls_vars) {
+#       # Source'd via RStudio
+#       return(normalizePath(sys.frames()[[1]]$fileName))
+#     } else {
+#       if (!is.null(sys.frames()[[1]]$ofile)) {
+#         # Source'd via R console
+#         return(normalizePath(sys.frames()[[1]]$ofile))
+#       } else {
+#         # RStudio Run Selection
+#         # http://stackoverflow.com/a/35842176/2292993
+#         return(normalizePath(rstudioapi::getActiveDocumentContext()$path))
+#       }
+#     }
+#   }
+# }
+# 
+# this.dir <- dirname(csf())
+# setwd(this.dir)
+# rm(list=ls())
+# 
+# ########## TEMP ########## 
 
-# a basic function to get the filepath of the current script
-csf <- function() {
-  # adapted from http://stackoverflow.com/a/32016824/2292993
-  cmdArgs = commandArgs(trailingOnly = FALSE)
-  needle = "--file="
-  match = grep(needle, cmdArgs)
-  if (length(match) > 0) {
-    # Rscript via command line
-    return(normalizePath(sub(needle, "", cmdArgs[match])))
-  } else {
-    ls_vars = ls(sys.frames()[[1]])
-    if ("fileName" %in% ls_vars) {
-      # Source'd via RStudio
-      return(normalizePath(sys.frames()[[1]]$fileName))
-    } else {
-      if (!is.null(sys.frames()[[1]]$ofile)) {
-        # Source'd via R console
-        return(normalizePath(sys.frames()[[1]]$ofile))
-      } else {
-        # RStudio Run Selection
-        # http://stackoverflow.com/a/35842176/2292993
-        return(normalizePath(rstudioapi::getActiveDocumentContext()$path))
-      }
-    }
-  }
-}
-
-this.dir <- dirname(csf())
-setwd(this.dir)
-rm(list=ls())
+#-----------------------------------------------------------------------------#
 
 
 # ########### LOAD LIBRARIES ############
@@ -199,9 +203,13 @@ saveWorkbook(output.wb, output.filename)
 # g.mult.20 <- read.xlsx(file = input.datafile,
 #                        sheetName = "2020growthmult", colClasses = "character")
 # 
+# saveRDS(g.mult.20, "g.mult.20")
+# 
 # # load 2050 multipliers
 # g.mult.50 <- read.xlsx(file = input.datafile,
 #                        sheetName = "2050growthmult", colClasses = "character")
+# 
+# saveRDS(g.mult.50, "g.mult.20")
 # 
 # # change class of county cols to character
 # g.mult.20$County <- as.character(g.mult.20$County)
@@ -228,17 +236,29 @@ saveWorkbook(output.wb, output.filename)
 # eui.16 <- read.xlsx(file = input.datafile,
 #                        sheetName = "EUI2016", colClasses = "character")
 # 
+# 
 # # load 2020 EUI data
 # eui.20 <- read.xlsx(file = input.datafile,
 #                        sheetName = "EUI2020", colClasses = "character")
+# 
+# 
+# 
+# 
 # # load 2050 EUI data
 # eui.50 <- read.xlsx(file = input.datafile,
 #                        sheetName = "EUI2050", colClasses = "character")
+# 
+# saveRDS(eui.16, "eui.50")
 # 
 # # set col classes of EUI tables
 # eui.16$Join <- as.character(paste(eui.16$Join))
 # eui.20$Join <- as.character(paste(eui.20$Join))
 # eui.50$Join <- as.character(paste(eui.50$Join))
+# 
+# 
+# saveRDS(eui.16, "eui.16")
+# saveRDS(eui.16, "eui.20")
+# saveRDS(eui.16, "eui.50")
 # 
 # ## County abbreviation codes
 # # load county name/abbreviation table
@@ -255,6 +275,7 @@ saveWorkbook(output.wb, output.filename)
 # set up processing que from shapefiles in input_shapefiles dir
 dir.files <- list.files("../input_shapefiles/")
 in.shapes <- dir.files[CheckExt(dir.files)]
+
   
 # initialize parallel backend
 no.cores <- (detectCores() - 1)
@@ -262,16 +283,13 @@ cl <- makeCluster(no.cores, type = "SOCK", outfile="../run_logs/log.txt")
 registerDoSNOW(cl)
 
 # iterate over shapefiles in 'input_shapefiles' directory
-output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
+output.metalist <- foreach(shapefile = in.shapes,
           .packages = c("plyr", "dplyr", "rgdal", "sp",
                         "raster",  "rgeos", "xlsx", "doSNOW"),
           .export = c("eui.16", "eui.20", "eui.50",
                       "output.wb")) %dopar% {
 
 
-  
-  ############ LOAD FUNCTIONS ############
-  source("bt_functions.R")
                           
   ############ LOAD PARCEL DATA ############ 
   in.shape.layer <- substr(shapefile, 1, nchar(shapefile)-4)
@@ -290,6 +308,9 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   # determine this county's three letter ID code
   i <- which(county.codes.df$county.name == cnt.name)
   cnt.code <- county.codes.df$county.code[i]
+  
+  ############ LOAD FUNCTIONS ############
+  source("bt_functions.R")
   
   ############ CLEAN PARCEL DATA ############ 
   
@@ -329,8 +350,12 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   cnt.raw.df$POLY_AREA <- as.numeric(cnt.raw.df$POLY_AREA)
   cnt.raw.df$POLY_AREA <- round(cnt.raw.df$POLY_AREA, 4)
   
+  # change names of BArea and LOTAREA fields to be year-specific
+  names(cnt.raw.df)[names(cnt.raw.df) == "BArea"] <- "BArea.16"
+  names(cnt.raw.df)[names(cnt.raw.df) == "LOTAREA"] <- "LOTAREA.16"
+  
   # change NAs to zeros in applicable numeric cols
-  cnt.raw.df$LOTAREA[is.na(cnt.raw.df$LOTAREA)] <- 0
+  cnt.raw.df$LOTAREA.16[is.na(cnt.raw.df$LOTAREA.16)] <- 0
   
   # change building type names in parcel data for consistency
   cnt.raw.df$TYPE[cnt.raw.df$TYPE == "Food Srv"] <- "Food.Srv"
@@ -338,13 +363,12 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   cnt.raw.df$TYPE[cnt.raw.df$TYPE == "Comm Misc"] <- "Comm.Misc"
   cnt.raw.df$TYPE[cnt.raw.df$TYPE == "college"] <- "College"
   
-  
   # init list of dfs for outputting building stock data in 2016, 2020 and 2050
   output.stock.df.lst <- vector("list", 3)
   
   ## Step 1. determine 2016 building stock by building type
   cnt.sum.16 <- ddply(cnt.raw.df, .(TYPE), .drop = F,
-                      summarise, SUM.FS.16 = sum(BArea))
+                      summarise, SUM.FS.16 = sum(BArea.16))
   
   # assign AGROUP field vals
   cnt.raw.df <- AssignAgroup(cnt.raw.df)
@@ -419,17 +443,18 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   # iterate over parcels, assigning 2020 statuses
   print("Determining status of parcels in 2020...")
   BinYEAR <- as.numeric(as.character(cnt.raw.df$Bin20))
-  BAREA <- as.numeric(as.character(cnt.raw.df$BArea))
-  LOTAREA <- as.numeric(as.character(cnt.raw.df$LOTAREA))
+  BAREA <- as.numeric(as.character(cnt.raw.df$BArea.16))
+  LOTAREA <- as.numeric(as.character(cnt.raw.df$LOTAREA.16))
   TYPE <- as.character(cnt.raw.df$TYPE)
   cnt.raw.df$Status20 <- unlist(AssignStatus(BinYEAR, BAREA, LOTAREA, TYPE))
   
   
-  ## Step 5: Generate summary stats for parcels 2020, by Status20
+  ## Step 5: Generate summary stats for parcels 2020, by Status20 prior to 
+  # turnover simulation (i.e. using '16 BArea and LOTAREA.16 vals)
   
   cnt.sum.20 <- ddply(cnt.raw.df, .(TYPE, Status20), .drop = F,
-                      summarise, SUM.FS.20 = sum(BArea), 
-                      SUM.LOT.20 = sum (LOTAREA))
+                      summarise, SUM.FS.20 = sum(BArea.16), 
+                      SUM.LOT.20 = sum (LOTAREA.16))
   
   
   ## Export summary table of remaining buildings in 2020
@@ -461,14 +486,16 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   cnt.row <- MakeRow(fs.diffs.df, cnt.name, "DIFF")
   WriteOutput(cnt.row, output.filename, sheet.name = "2020Diff")
   
+  # create field for bldg areas in 2020
+  cnt.raw.df$BArea.20 <- 0
   
-  # create field for new floorspace area in rebuilds
-  cnt.raw.df$NewArea <- 0
-  
-  # for parcels with 2020 status Remain, set NewArea <- BArea
+  # for parcels with 2020 status Remain, set BArea.20 <- BArea
   rem.20 <- cnt.raw.df[cnt.raw.df$Status20 == "Remain", ]
-  rem.20$NewArea <- rem.20$BArea
+  rem.20$BArea.20 <- rem.20$BArea.16
   cnt.raw.df[cnt.raw.df$Status20 == "Remain", ] <- rem.20
+  
+  # init field for lot areas in 2020
+  cnt.raw.df$LOTAREA.20 <- cnt.raw.df$LOTAREA.16
   
   print("Simulating building turnover for 2020...")
   
@@ -495,7 +522,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
     fs.diff <- type.row$DIFF
     
     # calculate bldg area to lot area ratio for usetype
-    btl.ratio <- CalcBtlRatio(cnt.raw.df, t, barea.col = "BArea")
+    btl.ratio <- CalcBtlRatio(cnt.raw.df, t, year=2016)
     
     # add to btl ratio df
     btl.row <- data.frame(TYPE = t, BTL.RATIO = btl.ratio)
@@ -510,7 +537,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
       while (t.diff < 0) {
         
         res <- RandomSwitch(cnt.raw.df, from.type = t, from.status = "Remain",
-                            to.type = t, to.status = "Deactivated", 
+                            to.type = "Vacant", to.status = "Deactivated", 
                             status.year=2020)
         cnt.raw.df <- res[[1]]
         switched.apn <- res[[2]]
@@ -518,7 +545,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         
         # check updated floorspace difference following switch
         t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain"),
-                            year = 2020, area.col = "NewArea")
+                            year = 2020, area.col = "BArea.20")
         print(sprintf("Updated floorspace difference: %s", t.diff))
       }
       
@@ -526,9 +553,9 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
       c.row <- data.frame(TYPE = t, DEMO.MULT.20 = 0)
       demo.mult.df <- rbind(demo.mult.df, c.row)
       
-      # case 1b: floorspace difference is positive but less than 100000
-    } else if ((fs.diff > 0) & (fs.diff <= 100000)) {
-      print("Floorspace difference is positive, but less than 100,000 sqft")
+      # case 1b: floorspace difference is positive but less than 10000
+    } else if ((fs.diff > 0) & (fs.diff <= 10000)) {
+      print("Floorspace difference is positive, but less than 10,000 sqft")
       demo.20.df <- subset(cnt.sum.20, (Status20 == "Demo") & (TYPE == t))
       demo.sum.20 <- sum(demo.20.df$SUM.FS.20)
       print("Calculating Gap-to-demo ratio...")
@@ -542,7 +569,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
       demo.mult.df <- rbind(demo.mult.df, c.row)
       
       # case 2: floorspace difference is positive
-    } else if (fs.diff > 100000) {
+    } else if (fs.diff > 10000) {
       print("Floorspace difference is positive")
       print("Calculating Gap-to-demo ratio...")
       demo.20.df <- subset(cnt.sum.20, (Status20 == "Demo") & (TYPE == t))
@@ -560,33 +587,33 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         
         # init floorspace difference tracker for this usetype
         t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain"),
-                            year=2020, area.col="NewArea")
+                            year=2020, area.col="BArea.20")
         
         # rebuild demo buildings until difference gap is closed
         while (t.diff > 0) {
           res <- SizeRankedSwitch(cnt.raw.df, from.type = t, 
                                   from.status = "Demo", to.type = t, 
                                   to.status = "Rebuild", year=2020, 
-                                  area.col <- "BArea")
+                                  area.col <- "BArea.16")
           cnt.raw.df <- res[[1]]
           rebuilt.apn <- res[[2]]
           print(sprintf("Building with APN: %s rebuilt", rebuilt.apn))
           
-          # update NewArea, Yrfinal and Bin50 fields of rebuild
+          # update BArea.20, Yrfinal and Bin50 fields of rebuild
           rebuild <- cnt.raw.df[(cnt.raw.df$APN == rebuilt.apn), ]
-          rebuild$NewArea <- rebuild$BArea
+          rebuild$BArea.20 <- rebuild$BArea.16
           rebuild$Yrfinal <- "2020"
           rebuild$Bin50 <- "1"
           cnt.raw.df[(cnt.raw.df$APN == rebuilt.apn), ] <- rebuild
           
           # check floorspace difference
           t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain", "Rebuild"),
-                              year=2020, area.col="NewArea")
+                              year=2020, area.col="BArea.20")
           print(sprintf("Updated floorspace difference: %s", t.diff))
           
           # init expansion factor and step var to increase by on each pass
-          expand.factor <- 1.5
-          expand.step <- 0.5
+          expand.factor <- 1.2
+          expand.step <- 0.2
           max.expand.factor <- 4
           
           # expand rebuilt building size until max expansion factor reached
@@ -595,27 +622,27 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
             print(sprintf("Expanding area of rebuild by factor of %s", 
                           expand.factor))
             cnt.raw.df <- ExpandArea(cnt.raw.df, rebuilt.apn, expand.factor,
-                                     from.area.col="BArea", 
-                                     to.area.col="NewArea")
+                                     from.area.col="BArea.16", 
+                                     to.area.col="BArea.20")
             # increase expansion factor 
             expand.factor <- expand.factor + expand.step
             t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain", "Rebuild"),
-                                year=2020, area.col="NewArea")
+                                year=2020, area.col="BArea.20")
             print(sprintf("Updated floorspace difference: %s", t.diff))
           }
         }
         
         # case 2b: GTD ratio is betwen 1 and 4 (inclusive)
       } else if ((ratio >= 1) & (ratio <= 4)) {
-        print("Gap-to-demo ratio is >=1 & <= 4; upsizing rebuilds to close gap")
+        print("GTD ratio is >= 1 & <= 4; upsizing rebuilds to close gap")
         
         # expand areas of rebuilds to close gap
         cnt.raw.df <- RebuildMultiplied(cnt.raw.df, type = t, 
                                         from.status = "Demo", 
                                         to.status = "Rebuild",
                                         mult = ratio, year=2020,
-                                        from.area.col = "BArea", 
-                                        to.area.col="NewArea")
+                                        from.area.col = "BArea.16", 
+                                        to.area.col="BArea.20")
         
         # case 2c: GTD ratio is greater than 4
       } else if (ratio > 4) {
@@ -624,8 +651,8 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         # first allocate all demos if any exist
         res <- RebuildMultiplied(cnt.raw.df, type = t, 
                                  from.status = "Demo", to.status = "Rebuild",
-                                 mult = 4, year=2020, from.area.col = "BArea", 
-                                 to.area.col="NewArea")
+                                 mult = 4, year=2020, from.area.col = "BArea.16", 
+                                 to.area.col="BArea.20")
         
         # only update master parcel df if rebuilds were performed
         if (res != "None") {
@@ -651,13 +678,13 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         
         # init floorspace difference tracker for this usetype
         t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain", "Rebuild"),
-                            year=2020, area.col="NewArea")
+                            year=2020, area.col="BArea.20")
         
         # convert open lots up to allowable BTL ratios until FS difference met
         # or convertable lot area runs out.
         while ((t.diff > 0) & (avail.lots)) {
-          res <- ConvertLot(cnt.raw.df, type = t, btl.ratio, year=2020, 
-                            from.area.col="BArea", to.area.col="NewArea")
+          res <- ConvertLot(cnt.raw.df, type = t, btl.ratio, 
+                            stock.year=2016, sim.year=2020)
           # check if no lots were available to convert
           if (res[[1]] == "None") {
             avail.lots = FALSE
@@ -678,53 +705,62 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
             # check floorspace difference
             t.diff <- CheckDiff(cnt.raw.df, t, 
                                 status = c("Remain", "Rebuild", "LotsFilled"),
-                                year=2020, area.col="NewArea")
+                                year=2020, area.col="BArea.20")
             print(sprintf("Updated floorspace difference: %s", t.diff))
           }
         }
         
-        ## lastly, allocate remaining FS needs to parcels with ustype "Vacant"
-        # check whether there are avail vacancies to convert
-        check.vacs <- cnt.raw.df[(cnt.raw.df$TYPE == "Vacant"), ]
-        if (nrow(check.vacs) != 0) {
-          avail.vacancies <- TRUE
-        } else {
-          avail.vacancies <- FALSE
-        }
+        ## lastly, allocate remaining FS needs to parcels with ustype "Vacant" 
+        # if current type is non-industrial
         
-        while ((t.diff > 0) & (avail.vacancies)) {
-          print(sprintf("Floorspace difference is still positive: %s", t.diff))
-          print(sprintf("Allocating vacancies to floorspace of type: %s", t))
-          
-          # convert vacant parcel to active floorspace
-          res <- FillVacant(cnt.raw.df, to.type = t, 
-                            btl.ratio = btl.ratio, year = 2020)
-          
-          if (res[[1]] == "None") {
-            avail.vacancies <- FALSE
+        # check if current type is non-industrial
+        if (t != "Ind") {
+        
+          # check whether there are avail vacancies to convert
+          check.vacs <- cnt.raw.df[(cnt.raw.df$TYPE == "Vacant"), ]
+          if (nrow(check.vacs) != 0) {
+            avail.vacancies <- TRUE
           } else {
-            # update parcel data after vacancy filled
-            cnt.raw.df <- res[[1]]
-            filled.apn <- res[[2]]
-            print(sprintf("Allocated FS from vacant lot on parcel with APN: %s", 
-                          filled.apn))
-            # check floorspace difference
-            t.diff <- CheckDiff(cnt.raw.df, t, 
-                                status = c("Remain", "Rebuild", 
-                                           "LotsFilled", "VacantFilled"),
-                                year=2020, area.col="NewArea")
-            print(sprintf("Updated floorspace difference: %s", t.diff))
+            avail.vacancies <- FALSE
+          }
+          
+          while ((t.diff > 0) & (avail.vacancies)) {
+            print(sprintf("Floorspace difference is still positive: %s", 
+                          t.diff))
+            print(sprintf("Allocating vacancies to floorspace of type: %s", 
+                          t))
+            
+            # convert vacant parcel to active floorspace
+            res <- FillVacant(cnt.raw.df, to.type = t, 
+                              btl.ratio = btl.ratio, 
+                              stock.year = 2016, sim.year = 2020)
+            
+            if (res[[1]] == "None") {
+              avail.vacancies <- FALSE
+            } else {
+              # update parcel data after vacancy filled
+              cnt.raw.df <- res[[1]]
+              filled.apn <- res[[2]]
+              print(sprintf("Allocated FS from vacant lot on parcel w/ APN: %s", 
+                            filled.apn))
+              # check floorspace difference
+              t.diff <- CheckDiff(cnt.raw.df, t, 
+                                  status = c("Remain", "Rebuild", 
+                                             "LotsFilled", "VacantFilled"),
+                                  year=2020, area.col="BArea.20")
+              print(sprintf("Updated floorspace difference: %s", t.diff))
+            }
           }
         }
       }
-      
     }
+    
     ## if there is still unmet floorspace requirements, export in table
     # check fs difference
     t.diff <- CheckDiff(cnt.raw.df, t, 
                         status = c("Remain", "Rebuild", 
                                    "LotsFilled", "VacantFilled"),
-                        year=2020, area.col="NewArea")
+                        year=2020, area.col="BArea.20")
     
     # generate row for this type if t.diff still positive
     if (t.diff > 0) {
@@ -747,8 +783,8 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   # calc summary stats for 2020 statuses after simulation
   ## Step 1. determine 2020 building stock by building type
   cnt.sum.20.post <- ddply(cnt.raw.df, .(TYPE, Status20), .drop=F, summarise, 
-                           SUM.FS.20 = sum(na.omit(NewArea)), 
-                           SUM.LOT.20 = sum(na.omit(LOTAREA)))
+                           SUM.FS.20 = sum(na.omit(BArea.20)), 
+                           SUM.LOT.20 = sum(na.omit(LOTAREA.20)))
   
   # write rebuilds to output table
   rebuilds.20 <- cnt.sum.20.post[cnt.sum.20.post$Status20 == "Rebuild",]
@@ -809,7 +845,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   
   ## Step 1. Determine 2020 building stock
   cnt.sum.20 <- ddply(cnt.raw.df, .(TYPE), .drop = F,
-                      summarise, SUM.NewArea.20 = sum(na.omit(NewArea)))
+                      summarise, SUM.BArea.20 = sum(na.omit(BArea.20)))
   
   # assign AGROUP field vals
   cnt.raw.df <- AssignAgroup(cnt.raw.df)
@@ -821,7 +857,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   output.stock.df.lst[[2]] <- output.sp
   
   # organize particular county's data for export
-  cnt.row <- MakeRow(cnt.sum.20, cnt.name, "SUM.NewArea.20")
+  cnt.row <- MakeRow(cnt.sum.20, cnt.name, "SUM.BArea.20")
   
   # write to output file
   WriteOutput(cnt.row, output.filename, sheet.name = "2020Stock")
@@ -840,12 +876,12 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   
   # merge multipliers to parcel data
   cnt.sum.20 <- merge(cnt.sum.20, g.mult.50.cnt, by = "TYPE", all.x = T)
-  cnt.sum.20$SUM.NewArea.20 <- as.numeric(cnt.sum.20$SUM.NewArea.20)
+  cnt.sum.20$SUM.BArea.20.20 <- as.numeric(cnt.sum.20$SUM.BArea.20)
   cnt.sum.20$MULT.50 <- as.numeric(as.character(cnt.sum.20$MULT.50))
   
   # multiply 2016 stocks by 2020 multipliers
   cnt.sum.20$PROJ.FS.50 <- NA
-  cnt.sum.20$PROJ.FS.50 <- cnt.sum.20$SUM.NewArea.20 * cnt.sum.20$MULT.50
+  cnt.sum.20$PROJ.FS.50 <- cnt.sum.20$SUM.BArea.20 * cnt.sum.20$MULT.50
   PROJ.FS.50.col <- cnt.sum.20[,c("TYPE", "PROJ.FS.50")]
   
   # merge 2020 projections with projections dataframe
@@ -871,18 +907,18 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   # init col to store 2050 status for each parcel
   cnt.raw.df$Status50 <- NA
   
-  # assign 2020 statuses to parcels
+  # assign 2050 statuses to parcels
   print("Determining status of parcels in 2050...")
   BinYEAR <- as.numeric(as.character(cnt.raw.df$Bin50))
-  BAREA <- as.numeric(as.character(cnt.raw.df$BArea))
-  LOTAREA <- as.numeric(as.character(cnt.raw.df$LOTAREA))
+  BAREA <- as.numeric(as.character(cnt.raw.df$BArea.20))
+  LOTAREA <- as.numeric(as.character(cnt.raw.df$LOTAREA.20))
   TYPE <- as.character(cnt.raw.df$TYPE)
   cnt.raw.df$Status50 <- unlist(AssignStatus(BinYEAR, BAREA, LOTAREA, TYPE))
   
   ## Step 5: Generate summary stats for building stock in 2050, by Status50
   cnt.sum.50 <- ddply(cnt.raw.df, .(TYPE, Status50), .drop = F,
-                      summarise, SUM.FS.50 = sum(NewArea),
-                      SUM.LOT.50 = sum(na.omit(LOTAREA)))
+                      summarise, SUM.FS.50 = sum(BArea.20),
+                      SUM.LOT.50 = sum(na.omit(LOTAREA.20)))
   
   ## Export summary table of remaining buildings in 2050
   remain.50 <- cnt.sum.50[cnt.sum.50$Status50 == "Remain", ] 
@@ -899,17 +935,20 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   cnt.row <- MakeRow(lots.50, cnt.name, "SUM.LOT.50")
   WriteOutput(cnt.row, output.filename, sheet.name = "2050LotsOpen")
   
-  # add field FNArea.50
-  cnt.raw.df$FNArea.50 <- 0
+  # add field BArea.50
+  cnt.raw.df$BArea.50 <- 0
   
-  # for parcels with 2050 status Remain, set FNArea.50
+  # for parcels with 2050 status Remain, set BArea.50
   rem.50 <- cnt.raw.df[cnt.raw.df$Status50 == "Remain", ]
-  rem.50$FNArea.50 <- rem.50$NewArea
+  rem.50$BArea.50 <- rem.50$BArea.20
   cnt.raw.df[cnt.raw.df$Status50 == "Remain", ] <- rem.50
+  
+  # init field for lot areas in 2050
+  cnt.raw.df$LOTAREA.50 <- cnt.raw.df$LOTAREA.20
   
   # determine additional floorspace needs for 2050
   yr20.data <- subset(cnt.sum.20, 
-                      select = c("TYPE", "SUM.NewArea.20", "PROJ.FS.50"))
+                      select = c("TYPE", "SUM.BArea.20.20", "PROJ.FS.50"))
   yr50.data <- cnt.sum.50[cnt.sum.50$Status50 == "Remain", ]
   fs.diffs.df <- merge(yr20.data, yr50.data, by = "TYPE")
   
@@ -946,7 +985,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
     fs.diff <- type.row$DIFF
     
     # calculate BArea to LotArea ratio for usetype
-    btl.ratio <- CalcBtlRatio(cnt.raw.df, t, barea.col="NewArea")
+    btl.ratio <- CalcBtlRatio(cnt.raw.df, t, year=2016)
     
     # add to btl ratio df
     btl.row <- data.frame(TYPE = t, BTL.RATIO = btl.ratio)
@@ -968,7 +1007,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         
         # check updated floorspace difference following switch
         t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain"), 
-                            year=2050, area.col="FNArea.50")
+                            year=2050, area.col="BArea.50")
         print(sprintf("Updated floorspace difference: %s", t.diff))
         
       }
@@ -977,9 +1016,9 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
       c.row <- data.frame(TYPE = t, DEMO.MULT.50 = 0)
       demo.mult.df <- rbind(demo.mult.df, c.row)
       
-      # case 1b: floorspace difference is positive but less than 100000
-    } else if ((fs.diff > 0) & (fs.diff <= 100000)) {
-      print("Floorspace difference is positive, but less than 100,000 sqft")
+      # case 1b: floorspace difference is positive but less than 10000
+    } else if ((fs.diff > 0) & (fs.diff <= 10000)) {
+      print("Floorspace difference is positive, but less than 10,000 sqft")
       demo.50.df <- subset(cnt.sum.50, (Status50 == "Demo") & (TYPE == t))
       demo.sum.50 <- sum(demo.50.df$SUM.FS.50)
       
@@ -993,7 +1032,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
       demo.mult.df <- rbind(demo.mult.df, c.row)
       
       # case 2: floorspace difference is positive
-    } else if (fs.diff > 100000) {
+    } else if (fs.diff > 10000) {
       print("Floorspace difference is positive")
       demo.50.df <- subset(cnt.sum.50, (Status50 == "Demo") & (TYPE == t))
       demo.sum.50 <- sum(demo.50.df$SUM.FS.50)
@@ -1013,34 +1052,34 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         
         # init floorspace difference tracker for this usetype
         t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain"),
-                            year=2050, area.col="FNArea.50")
+                            year=2050, area.col="BArea.50")
         
         # rebuild demo buildings until difference gap is closed
         while (t.diff > 0) {
           res <- SizeRankedSwitch(cnt.raw.df, from.type = t, 
                                   from.status = "Demo", to.type = t, 
                                   to.status = "Rebuild", year=2050, 
-                                  area.col="NewArea")
+                                  area.col="BArea.20")
           cnt.raw.df <- res[[1]]
           rebuilt.apn <- res[[2]]
           print(sprintf("Building with APN: %s rebuilt", rebuilt.apn))
           
-          # update NewArea, Yrfinal and Bin50 fields of rebuild
+          # update BArea.20, Yrfinal and Bin50 fields of rebuild
           rebuild <- cnt.raw.df[(cnt.raw.df$APN == rebuilt.apn), ]
-          rebuild$NewArea <- rebuild$BArea
+          rebuild$BArea.20 <- rebuild$BArea.16
           rebuild$Yrfinal <- "2050"
           rebuild$Bin50 <- "1"
           cnt.raw.df[(cnt.raw.df$APN == rebuilt.apn), ] <- rebuild
           
           # check floorspace difference
           t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain", "Rebuild"), 
-                              year=2050, area.col="FNArea.50")
+                              year=2050, area.col="BArea.50")
           print(sprintf("Updated floorspace difference: %s", t.diff))
           
           # init expansion factor and step var to increase by on each pass
-          expand.factor <- 1.5
-          expand.step <- 0.5
-          max.expand.factor <- 4
+          expand.factor <- 1.2
+          expand.step <- 0.2
+          max.expand.factor <- 8
           
           # expand rebuilt building size until max expansion factor reached
           # or floorspace difference gap is closed
@@ -1048,26 +1087,27 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
             print(sprintf("Expanding area of rebuild by factor of %s", 
                           expand.factor))
             cnt.raw.df <- ExpandArea(cnt.raw.df, rebuilt.apn, expand.factor,
-                                     from.area.col="NewArea",
-                                     to.area.col="FNArea.50")
+                                     from.area.col="BArea.20",
+                                     to.area.col="BArea.50")
             # increase expansion factor 
             expand.factor <- expand.factor + expand.step
             t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain", "Rebuild"),
-                                year=2050, area.col="FNArea.50")
+                                year=2050, area.col="BArea.50")
             print(sprintf("Updated floorspace difference: %s", t.diff))
           }
         }
-        # case 2b: GTD ratio is betwen 1 and 4 (inclusive)
+      
+        # case 2b: GTD ratio is betwen 1 and 8 (inclusive)
       } else if ((ratio >= 1) & (ratio <= 8)) {
-        print("Gap-to-demo ratio is >=1 & <= 8; upsizing rebuilds to close gap")
+        print("GTD ratio is >= 1 & <= 8; upsizing rebuilds to close gap")
         
         # expand areas of rebuilds to close gap
         cnt.raw.df <- RebuildMultiplied(cnt.raw.df, type = t, 
                                         from.status = "Demo", 
                                         to.status = "Rebuild",
                                         mult = ratio, year=2050, 
-                                        from.area.col="NewArea",
-                                        to.area.col="FNArea.50")
+                                        from.area.col="BArea.20",
+                                        to.area.col="BArea.50")
         
         # case 2c: GTD ratio is greater than 8
       } else if (ratio > 8) {
@@ -1076,8 +1116,8 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         # first allocate all demos if any exist
         res <- RebuildMultiplied(cnt.raw.df, type = t, 
                                  from.status = "Demo", to.status = "Rebuild",
-                                 mult = 8, year=2050, from.area.col="NewArea",
-                                 to.area.col="FNArea.50")
+                                 mult = 8, year=2050, from.area.col="BArea.20",
+                                 to.area.col="BArea.50")
         if (res != "None") {
           cnt.raw.df <- res
         }
@@ -1101,13 +1141,13 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
         
         # init floorspace difference tracker for this usetype
         t.diff <- CheckDiff(cnt.raw.df, t, status = c("Remain", "Rebuild"),
-                            year=2050, area.col="FNArea.50")
+                            year = 2050, area.col="BArea.50")
         
         # convert open lots up to allowable BTL ratios until FS difference  met
         # or convertable lot area runs out.
         while ((t.diff > 0) & (avail.lots)) {
-          res <- ConvertLot(cnt.raw.df, type = t, btl.ratio, year=2050,
-                            from.area.col="NewArea", to.area.col="FNArea.50")
+          res <- ConvertLot(cnt.raw.df, type = t, btl.ratio,
+                            stock.year=2020, sim.year = 2050)
           
           # check if no lots were available to convert
           if (res[[1]] == "None") {
@@ -1128,55 +1168,64 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
             # check floorspace difference
             t.diff <- CheckDiff(cnt.raw.df, t, 
                                 status = c("Remain", "Rebuild", "LotsFilled"),
-                                year=2050, area.col="FNArea.50")
+                                year=2050, area.col="BArea.50")
             print(sprintf("Updated floorspace difference: %s", t.diff))
           }
         }
         
         ## lastly, allocate remaining FS needs to parcels with ustype "Vacant"
-        # check whether there are avail vacancies to convert
-        check.vacs <- cnt.raw.df[(cnt.raw.df$TYPE == "Vacant"), ]
-        if (nrow(check.vacs) != 0) {
-          avail.vacancies <- TRUE
-        } else {
-          avail.vacancies <- FALSE
-        }
+        # if the current type in non-industrial
         
-        while ((t.diff > 0) & (avail.vacancies)) {
-          print(sprintf("Floorspace difference is still positive: %s", t.diff))
-          print(sprintf("Allocating vacancies to floorspace of type: %s", t))
-          
-          # convert vacant parcel to active floorspace
-          res <- FillVacant(cnt.raw.df, to.type = t, 
-                            btl.ratio = btl.ratio, year = 2050)
-          if (res[[1]] == "None") {
-            avail.vacancies <- FALSE
-          
+        # check if the current type is non-industrial
+        if (t != "Ind") {
+        
+          # check whether there are avail vacancies to convert
+          check.vacs <- cnt.raw.df[(cnt.raw.df$TYPE == "Vacant"), ]
+          if (nrow(check.vacs) != 0) {
+            avail.vacancies <- TRUE
           } else {
-          # update parcel data
-            cnt.raw.df <- res[[1]]
-            filled.apn <- res[[2]]
-            print(sprintf("Allocated FS from vacant lot on parcel with APN: %s", 
-                        filled.apn))
-          
-         
-            # check floorspace difference
-            t.diff <- CheckDiff(cnt.raw.df, t, 
-                                status = c("Remain", "Rebuild", 
-                                           "LotsFilled", "VacantFilled"),
-                                year=2050, area.col="FNArea.50")
-            print(sprintf("Updated floorspace difference: %s", t.diff))
+            avail.vacancies <- FALSE
           }
-        }
+          
+          while ((t.diff > 0) & (avail.vacancies)) {
+            print(sprintf("Floorspace difference is still positive: %s", 
+                          t.diff))
+            print(sprintf("Allocating vacancies to floorspace of type: %s", 
+                          t))
+            
+            # convert vacant parcel to active floorspace
+            res <- FillVacant(cnt.raw.df, to.type = t, 
+                              btl.ratio = btl.ratio, 
+                              stock.year = 2020, sim.year = 2050)
+            
+            if (res[[1]] == "None") {
+              avail.vacancies <- FALSE
+            
+            } else {
+            # update parcel data
+              cnt.raw.df <- res[[1]]
+              filled.apn <- res[[2]]
+              print(sprintf("Allocated FS from vacant lot on parcel w/ APN: %s", 
+                          filled.apn))
+            
+           
+              # check floorspace difference
+              t.diff <- CheckDiff(cnt.raw.df, t, 
+                                  status = c("Remain", "Rebuild", 
+                                             "LotsFilled", "VacantFilled"),
+                                  year=2050, area.col="BArea.50")
+              print(sprintf("Updated floorspace difference: %s", t.diff))
+            }
+          }
+        } 
       }
-      
     }
     ## if there is still unmet floorspace requirements, export in table
     # check diff
     t.diff <- CheckDiff(cnt.raw.df, t, 
                         status = c("Remain", "Rebuild", 
                                    "LotsFilled", "VacantFilled"),
-                        year=2050, area.col="FNArea.50")
+                        year=2050, area.col="BArea.50")
     
     # generate row for this type if t.diff still positive
     if (t.diff > 0) {
@@ -1199,7 +1248,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   
   # calc summary stats for 2050 statuses after simulation
   cnt.sum.50.post <- ddply(cnt.raw.df, .(TYPE, Status50), .drop=F, summarise, 
-                           SUM.FS.50 = sum(na.omit(NewArea)))
+                           SUM.FS.50 = sum(na.omit(BArea.20)))
   
   # write rebuilds to output table
   rebuilds.50 <- cnt.sum.50.post[cnt.sum.50.post$Status50 == "Rebuild",]
@@ -1258,7 +1307,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   ############ PHASE III: ASSESS 2050 SIMULATION RESULTS ############  
   # create 2050 building stock
   cnt.sum.50 <- ddply(cnt.raw.df, .(TYPE), .drop = F,
-                      summarise, SUM.FNArea.50 = sum(na.omit(FNArea.50)))
+                      summarise, SUM.BArea.50 = sum(na.omit(BArea.50)))
   
   # assign AGROUP field vals
   cnt.raw.df <- AssignAgroup(cnt.raw.df)
@@ -1270,7 +1319,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   output.stock.df.lst[[3]] <- output.sp
   
   # organize particular county's summary data for export
-  cnt.row <- MakeRow(cnt.sum.50, cnt.name, "SUM.FNArea.50")
+  cnt.row <- MakeRow(cnt.sum.50, cnt.name, "SUM.BArea.50")
   
   # write to output file
   WriteOutput(cnt.row, output.filename, sheet.name = "2050Stock")
@@ -1282,7 +1331,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
 stopCluster(cl)
 
 # export metalist of county level stock data for 2016, 202, and 2050
-saveRDS(output.metalist, "stocks_16_20_50.RDS")
+saveRDS(output.metalist, "../output_data/stocks_16_20_50.RDS")
 
 })
 

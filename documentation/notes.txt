@@ -1,6 +1,14 @@
 # NOTES:
+
+MASTER TODO LIST:
+- clean up logical statements that span multiple lines
+- remove spaces around = signs in all function calls
+- adjust RebuildMultiplied() to use stock.year, sim.year convention
+
+7.10.17
+
 # - in the ConvertLot20 function, does this handle ranking within the
-# Condo/MF case properly?
+# Condo/MF case properly? -DONE
 
 # - question about formatting of tabular data in 2020Rebuild sheet of output
 
@@ -8,16 +16,63 @@
 # - if fs diff is negative should vacated building statuses be changed to
 # deactivated or vacant?
 
-# -791 - should lotarea (and BArea) fields be changes with conversions?
+# -791 - should lotarea (and BArea) fields be changes with conversions?-DONE
 
 # -when assigning EUI vintages, how should 2020 building be assigned?
-# - is there supposed to be a condition for these in the EUIVint tab?
+# - is there supposed to be a condition for these in the EUIVint tab? -DONE
 
-# three letter county codes?
+# three letter county codes?-DONE
 
-# statewide btl ratios table?
+# statewide btl ratios table? -see tab in sample output
 
 # 2016 College building stock numbers are inconsistent between
 model output and your sample spreadsheet
 
-# PUD usetype in summary tables?
+# PUD usetype in summary tables? -exclude from summary tables
+
+7.11.16 - Meeting with Hanna
+
+- decided to eliminate the square footage diference threshold for usetypes to
+ignore
+- decided to iterate over subtypes for applying growth multipliers and
+calculating/filling floorspace differences.
+- decided to have two output table files, one with summaries broken down by
+type and one with summaries broken down by usetype
+- decided to use 2016 BtoL ratios throughout future simulations for determining
+how much open/vacant lot area can be taken up by new builds.
+
+- data cleaning steps should be done outside of main script
+  - should these changes be hard-coded in data files
+  - or, performed in a separate, clean.R script which acts as a bridge from the
+  raw data files to the master analysis script?
+
+- need to add total energy use fields to shapefile
+  - calculate by multiplying building area for particular year by EUI
+  multiplier
+
+7.12.17
+
+Steps for formatting output tables by subtype:
+
+  - in WriteOutput(), merge county's subtype summary stats to a template
+  which contains rows for all possible subtypes, with .drop = F
+  - change WriteOutput function to output an RDS file to  ../output_data/temp
+  for a particular county. This will be a list, each element corresponding to
+  an item to be written to a particular sheet in the eventual output table
+
+  - after parallel processing of all counties finished:
+    - read in RDS summary stats files for each county
+    - initialize the output xlsx file with column names for all subtypes
+
+  - after calculating summary stats for a county, mer
+
+Change Log:
+  - replaced all "NewArea" refs with "BArea.20"
+  - replaced all "FNArea.50" refs with "BArea.50"
+  - in FillVacant() added stock.year, sim.year params
+    - need to change calls in master -DONE
+  - in ConvertLot() changed params to elim year and add stock.year, sim.year
+    - need to change calls in master -DONE
+
+  - reduced small difference thresh to 10k
+  - added handling for industrial types

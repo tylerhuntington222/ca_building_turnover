@@ -166,7 +166,7 @@ AssignEUIVint <- Vectorize(function(Yrfinal, stock.year) {
 })
 
 WriteShapefile <- function(parcel.df, county.code, year, 
-                           parcel.sp=cnt.raw.sp) {
+                           parcel.sp = cnt.raw.sp) {
   
   yr <- substr(year, 3, 4)
   
@@ -183,24 +183,23 @@ WriteShapefile <- function(parcel.df, county.code, year,
   
   parcel.df <- merge(parcel.df, get(eui.table), by = "Join", all.x = T)
   
-  # set contents of BArea field to match year
-  if (year == 2016) {
-    barea.col <- "BArea"
-  } else if (year == 2020) {
-    barea.col <- "NewArea"
-  } else if (year == 2050) {
-    barea.col <- "FNArea.50"
-  }
-  
-  parcel.df$BArea <- parcel.df[,barea.col]
   
   # subset for fields to include in shapefile attribute table
-  drop <- c("NewArea", "FNArea.50")
+  drop <- c()
   cols <- names(parcel.df)
   fields <- cols[!(cols %in% drop)]
   parcel.df <- subset(parcel.df, select = fields)
+  
+  # set fields with large numerics to chars
   parcel.df$POLY_AREA <- as.character(round(parcel.df$POLY_AREA, 3))
-  parcel.df$BArea <- as.character(round(parcel.df$BArea, 1))
+  
+  # find BArea cols
+  barea.cols <- grep("BArea", names(parcel.df), value = T)
+  
+  # iterate over BArea cols, changing their class to character
+  for (c in barea.cols) {
+    parcel.df[,c] <- as.character(round(parcel.df[,c], 1))
+  }
   
   # set up spatial object for export as .shp
   rownames(parcel.df) <- parcel.df$APN
@@ -335,7 +334,7 @@ RandomSwitch <- function(parcel.df, from.type,
 
 
 CheckDiff <- function(parcel.df, type, status, year, 
-                      area.col, projections.data=proj.df) {
+                      area.col, projections.data = proj.df) {
   #---------------------------------------------------------------------------#
   # PURPOSE: a function that checks the difference between the projected and 
   # actual (i.e. remaining on the basis of cutoff year table) floorspace of
@@ -501,7 +500,7 @@ ExpandArea <- function(parcel.df, apn, expand.factor,
   
   # RETURNS: parcel.df with updated parcel data as specified by other arguments
   
-  # SIDE-EFFECTS: updates the NewArea field of a bldg to the product of the
+  # SIDE-EFFECTS: updates the BArea.20 field of a bldg to the product of the
   # parcel's BArea field and the supplied expansion factor. 
   #---------------------------------------------------------------------------#
   
@@ -511,7 +510,7 @@ ExpandArea <- function(parcel.df, apn, expand.factor,
   # calc expanded area of rebuild
   new.area <- orig.area * expand.factor
   
-  # update NewArea field of parcel df
+  # update BArea.20 field of parcel df
   parcel.df[parcel.df$APN == apn, ][,to.area.col] <- new.area
   
   return(parcel.df)
@@ -519,10 +518,11 @@ ExpandArea <- function(parcel.df, apn, expand.factor,
 }
 #-----------------------------------------------------------------------------#
 
-CalcBtlRatio <- function(parcel.df, type, barea.col) {
+CalcBtlRatio <- function(parcel.df, type, year) {
   #---------------------------------------------------------------------------#
-  # PURPOSE: calculate the bldg area to lot area ratio of a particular usetype,
-  # within a specific county. Omits outliers and zeros in calulation of mean.
+  # PURPOSE: calculate the mean bldg area to lot area ratio of a particular 
+  # usetype, within a specific county. 
+  # Omits outliers and zeros in calulation of mean.
   
   # PARAMS:
   # parcel.df - a dataframe of parcel data for the county of interest
@@ -536,12 +536,17 @@ CalcBtlRatio <- function(parcel.df, type, barea.col) {
   # SIDE-EFFECTS: None
   #---------------------------------------------------------------------------#
   
+  yr <- substr(as.character(year), 3, 4)
+  status.col <- paste0("Status", yr)
+  barea.col <- paste0("BArea.", yr)
+  lotarea.col <- paste0("LOTAREA.", yr)
+  
   # init parcel pool to select from
   pool <- subset(parcel.df, (parcel.df$TYPE == type))
   
   # get barea and lotarea vals
   barea.vals <- pool[,barea.col]
-  lotarea.vals <- pool$LOTAREA 
+  lotarea.vals <- pool[,lotarea.col]
   
   # make dataframe
   btl.df <- data.frame(barea.vals, lotarea.vals)
@@ -579,8 +584,7 @@ CalcBtlRatio <- function(parcel.df, type, barea.col) {
 }
 #-----------------------------------------------------------------------------#
 
-ConvertLot <- function(parcel.df, type, btl.ratio, year, 
-                       from.area.col, to.area.col) {
+ConvertLot <- function(parcel.df, type, btl.ratio, stock.year, sim.year) {
   #---------------------------------------------------------------------------#
   # PURPOSE: a function that converts lot area to building area of a parcel 
   # with status "LotsOpen". The parcel within the candidate
@@ -595,7 +599,7 @@ ConvertLot <- function(parcel.df, type, btl.ratio, year,
   # btl.ratio - the max post-conversion bldg area to lot area ratio 
   # type - a string specifying the type of building stock to pull from
   # year -
-  # to.area.col -
+  # to.barea.col -
   
   # RETURNS: APN code of parcel in which lot area was converted to bldg area
   # if no lots were able to be converted, returns "None"
@@ -604,8 +608,15 @@ ConvertLot <- function(parcel.df, type, btl.ratio, year,
   # of the parcel that is selected via the ranked/randomized selection step. 
   #---------------------------------------------------------------------------#
   
-  yr <- substr(as.character(year), 3, 4)
-  status.col <- paste0("Status", yr)
+  stock.yr <- substr(as.character(stock.year), 3, 4)
+  sim.yr <- substr(as.character(sim.year), 3, 4)
+  status.col <- paste0("Status", sim.yr)
+  
+  from.barea.col <- paste0("BArea.", stock.yr)
+  to.barea.col <- paste0("BArea.", sim.yr)
+  
+  from.lotarea.col <- paste0("LOTAREA.", stock.yr)
+  to.lotarea.col <- paste0("LOTAREA.", sim.yr)
   
   ## init parcel pool to select from
   # check if usetype is "Condo" in which case, include MF parcels in pool
@@ -619,6 +630,11 @@ ConvertLot <- function(parcel.df, type, btl.ratio, year,
                      (parcel.df[,status.col] == "LotsOpen"))
   }
   
+  # check that there are parcels in the candidate pool
+  if (nrow(pool) == 0) {
+    return("None")
+  }
+    
   ## score parcels in pool by data availability
   # init data score field
   pool$dc.score <- NA
@@ -660,31 +676,28 @@ ConvertLot <- function(parcel.df, type, btl.ratio, year,
   
   ## select highest ranked parcel
   top.scoring.pars <- which(pool$dc.score == max(pool$dc.score))
-  sel.par <- pool[sample(top.scoring.pars, 1), ]
+  sel.par <- pool[sample(top.scoring.pars, 1),]
   
   # get apn of selected parcel
   sel.par.apn <- sel.par$APN
   
-  ## determine current btl ratio of selected parcel
-  if (year == 2020) {
-    barea <- "BArea"
-  } else {
-    barea <- "NewArea"
-  }
+  # obtain parcel w/o dc.score field from master parcel df
+  sel.par <- parcel.df[parcel.df$APN == sel.par.apn,]
   
-  btl.par <- CalcBtlRatio(sel.par, type = sel.par$TYPE, barea.col=barea)
+  ## determine current btl ratio of selected parcel
+  btl.par <- CalcBtlRatio(sel.par, type = sel.par$TYPE, year = stock.year)
   
   # case if no valid btl calculated due to NA or zero val for bldg area
   if (is.na(btl.par)) {
     
     # calculate how much additional lot area can be converted to bldg area
-    avail.area <- (sel.par$LOTAREA * btl.ratio)
+    avail.area <- (sel.par[,from.lotarea.col] * btl.ratio)
     
     # allocate allowable lot area to bldg area
-    sel.par[,to.area.col] <- (sel.par[,from.area.col] + avail.area)
+    sel.par[,to.barea.col] <- (sel.par[,from.barea.col] + avail.area)
     
-    # subtract converted lot area from LOTAREA field ???
-    sel.par$LOTAREA <- (sel.par$LOTAREA - avail.area)
+    # subtract converted lot area from LOTAREA field 
+    sel.par[,to.lotarea.col] <- (sel.par[,from.lotarea.col] - avail.area)
     
   } else {
     
@@ -692,13 +705,14 @@ ConvertLot <- function(parcel.df, type, btl.ratio, year,
     if (btl.par < btl.ratio) {
       
       # calculate how much additional lot area can be converted to bldg area
-      avail.area <- (sel.par$LOTAREA * btl.ratio) - (sel.par$LOTAREA * btl.par)
+      avail.area <- (sel.par[,from.lotarea.col] * btl.ratio) -
+        (sel.par[,from.lotarea.col] * btl.par)
       
       # allocate allowable lot area to bldg area
-      sel.par[,to.area.col] <- (sel.par[,from.area.col] + avail.area)
+      sel.par[,to.barea.col] <- (sel.par[,from.barea.col] + avail.area)
       
       # update lotarea field
-      sel.par$LOTAREA <- (sel.par$LOTAREA - avail.area)
+      sel.par[,to.lotarea.col] <- (sel.par[,from.lotarea.col] - avail.area)
       
       # change type if MF lot area was converted to fill Condo floorspace gap
       if ((sel.par$TYPE == "MF") & (type == "Condo")) {
@@ -710,8 +724,7 @@ ConvertLot <- function(parcel.df, type, btl.ratio, year,
     }
   }
   
-  # update relevant fields field of selected parcel
-  sel.par[,to.area.col] <- sel.par[,from.area.col]
+  # update status of parcel where conversion occurred
   sel.par[,status.col] <- "LotsFilled"
   
   # update row of selected parcel in master parcel df
@@ -721,11 +734,11 @@ ConvertLot <- function(parcel.df, type, btl.ratio, year,
   res.list <- list(parcel.df, sel.par.apn)
   
   return(res.list)
-}
+  }
 
 #-----------------------------------------------------------------------------#
 
-FillVacant <- function(parcel.df, to.type, btl.ratio, year) {
+FillVacant <- function(parcel.df, to.type, btl.ratio, stock.year, sim.year) {
   #---------------------------------------------------------------------------#
   # PURPOSE: a function that randomly assigns the type and status 
   # of a building of a user-specified original type and status to "Vacant"
@@ -744,21 +757,27 @@ FillVacant <- function(parcel.df, to.type, btl.ratio, year) {
   # the parcel.df that meets supplied criteria to "Vacant"
   #---------------------------------------------------------------------------#
   
-  yr <- substr(as.character(year), 3, 4)
-  status.col <- paste0("Status", yr)
+  stock.yr <- substr(as.character(stock.year), 3, 4)
+  sim.yr <- substr(as.character(sim.year), 3, 4)
   
-  if (year == 2020) {
-    from.barea.col <- "BArea"
-    to.barea.col <- "NewArea"
-  } else {
-    from.barea.col <- "NewArea"
-    to.barea.col <- "FNArea.50"
-  }
+  status.col <- paste0("Status", sim.yr)
+  
+  from.barea.col <- paste0("BArea.", stock.yr)
+  to.barea.col <- paste0("BArea.", sim.yr)
+  
+  from.lotarea.col <- paste0("LOTAREA.", stock.yr)
+  to.lotarea.col <- paste0("LOTAREA.", sim.yr)
   
   # init parcel pool to select from
   pool <- subset(parcel.df, 
                  (parcel.df$TYPE == "Vacant") & 
-                   ((parcel.df[,from.barea.col] > 0) | (parcel.df$LOTAREA > 0)))
+                   ((parcel.df[,from.barea.col] > 0) | 
+                      (parcel.df[,from.lotarea.col] > 0)))
+  
+  # check that there are parcels in the candidate pool
+  if (nrow(pool) == 0) {
+    return ("None")
+  }
   
   # rank pool of vacant parcels in order of conversion priority
   pool$conv.ord <- 0
@@ -776,10 +795,10 @@ FillVacant <- function(parcel.df, to.type, btl.ratio, year) {
             (pool[,status.col] != "Remain")), ]$conv.ord <- 2
     
   } else if (nrow(pool[(pool[,from.barea.col] == 0) & 
-                  (pool[,"LOTAREA"] > 0), ]) > 0) {
+                  (pool[,from.lotarea.col] > 0), ]) > 0) {
     
     pool[((pool[,from.barea.col] == 0) & 
-           (pool[,"LOTAREA"] > 0)), ]$conv.ord <- 3
+           (pool[,from.lotarea.col] > 0)), ]$conv.ord <- 3
     
   }
   
@@ -821,44 +840,45 @@ FillVacant <- function(parcel.df, to.type, btl.ratio, year) {
     
   ## determine current btl ratio of selected parcel
   btl.par <- CalcBtlRatio(sel.par, type = sel.par$TYPE, 
-                            barea.col=from.barea.col)
+                            year = stock.year)
     
   # case if no valid btl calculated due to NA or zero val for bldg area
   if (is.na(btl.par)) {
       
     # calculate how much additional lot area can be converted to bldg area
-    avail.area <- (sel.par$LOTAREA * btl.ratio)
+    avail.area <- (sel.par[,from.lotarea.col] * btl.ratio)
     
     # allocate allowable lot area to bldg area
     sel.par[,to.barea.col] <- (sel.par[,from.barea.col] + avail.area)
     
     # update lotarea field
-    sel.par$LOTAREA <- (sel.par$LOTAREA - avail.area)
+    sel.par[,to.lotarea.col] <- (sel.par[,from.lotarea.col] - avail.area)
     
     # update Yrfinal 
-    sel.par$Yrfinal <- year
+    sel.par$Yrfinal <- sim.year
     
     # if vacancy filled in 2020, update Bin50 field
-    if (year == 2020) {
+    if (sim.year == 2020) {
       sel.par$Bin50 <- 1
     }
     
   # check that parcel's btl ratio does not already exceed usetype mean
   } else if (btl.par < btl.ratio) {
         
-    avail.area <- (sel.par$LOTAREA * btl.ratio) - (sel.par$LOTAREA * btl.par)
+    avail.area <- (sel.par[,from.lotarea.col] * btl.ratio) - 
+      (sel.par[,from.lotarea.col] * btl.par)
     
     # allocate allowable lot area to bldg area
     sel.par[,to.barea.col] <- (sel.par[,from.barea.col] + avail.area)
     
     # update lotarea field
-    sel.par$LOTAREA <- (sel.par$LOTAREA - avail.area)
+    sel.par[,to.lotarea.col] <- (sel.par[,from.lotarea.col] - avail.area)
     
     # update Yrfinal 
-    sel.par$Yrfinal <- year
+    sel.par$Yrfinal <- sim.year
     
     # if vacancy filled in 2020, update Bin50 field
-    if (year == 2020) {
+    if (sim.year == 2020) {
       sel.par$Bin50 <- 1
     }
   } else {
