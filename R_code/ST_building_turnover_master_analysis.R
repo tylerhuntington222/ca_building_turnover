@@ -52,7 +52,7 @@
 
 # PURPOSE:
 # PURPOSE:
-# A spatially explicit simulation model for quantifying 
+# A spatially explicit simulation model for quantifying
 # current and future energy demands of buildings on non-residential land
 # parcels in the state of California.
 
@@ -61,7 +61,7 @@
 
 # OUTPUTS:
 
-# 1. An excel workbook with summary tables detailing the types and statuses 
+# 1. An excel workbook with summary tables detailing the types and statuses
 # of CA building
 # stock in the years 2016, 2020, and 2050 for the c
 
@@ -70,8 +70,8 @@
 # 2020 building stock for that county
 # 2050 building stock for that county
 
-# The attribute table of each shapefile contains parcel type, status and 
-# energy use intensity data specific to the corresponding year. 
+# The attribute table of each shapefile contains parcel type, status and
+# energy use intensity data specific to the corresponding year.
 
 #-----------------------------------------------------------------------------#
 
@@ -116,7 +116,7 @@
 ########### LOAD LIBRARIES ############
 packages <- c("ggmap", "raster", "sp", "ggplot2", "rgeos",
               "spatialEco", "geosphere", "doParallel", "iterators",
-              "foreach", "rgdal", "plyr")
+              "foreach", "rgdal", "plyr","openxlsx")
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
   install.packages(setdiff(packages, rownames(installed.packages())))
 }
@@ -132,7 +132,6 @@ require(doParallel)
 require(iterators)
 require(foreach)
 require(rgdal)
-require(xlsx)
 require(plyr)
 require(doSNOW)
 require(openxlsx)
@@ -295,13 +294,14 @@ in.shapes <- dir.files[CheckExt(dir.files)]
 
 # initialize parallel backend
 no.cores <- (detectCores() - 1)
-cl <- makeCluster(no.cores, type = "SOCK", outfile="../run_logs/log.txt")
+cl <- makeCluster(no.cores, type = "SOCK", outfile="")
 registerDoSNOW(cl)
 
 # iterate over shapefiles in 'input_shapefiles' directory
 output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
                            .packages = c("plyr", "dplyr", "rgdal", "sp",
-                                         "raster",  "rgeos", "xlsx", "doSNOW"),
+                                         "raster",  "rgeos", "openxlsx", 
+                                         "doSNOW"),
                            .export = c("eui.16", "eui.20", "eui.50",
                                        "output.sheetnames")) %dopar% {
   
