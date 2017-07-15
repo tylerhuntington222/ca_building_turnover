@@ -158,7 +158,7 @@ MakeZeroRow <- function(column.names, county.name) {
   return(row.df)
 }
 
-AssignEUIVint <- Vectorize(function(Yrfinal, stock.year) {
+AssignEUIVint <- Vectorize(function(altyrfn, stock.year) {
   
   yr <- substr(stock.year, 3, 4)
   col.name <- "EUIVint"
@@ -166,7 +166,7 @@ AssignEUIVint <- Vectorize(function(Yrfinal, stock.year) {
   # determin which EUIVint calculator function to call
   fun.name <- paste0("CalcEUIVint", yr)
   
-  EUIVint <- get(fun.name)(Yrfinal)
+  EUIVint <- get(fun.name)(altyrfn)
   
   return(EUIVint)
   
@@ -180,7 +180,7 @@ WriteShapefile <- function(parcel.df, county.code, year,
   stock.barea.col <- paste0("BArea.", yr)
   
   # assign EUI vint codes
-  parcel.df$EUIVint <- unlist(AssignEUIVint(parcel.df$Yrfinal, 
+  parcel.df$EUIVint <- unlist(AssignEUIVint(parcel.df$altyrfn, 
                                             stock.year = year))
   
   # join EUIs to parcels
@@ -448,8 +448,8 @@ RebuildMultiplied <- function(parcel.df, stype, from.status, to.status, mult,
     # apply multiplier
     t.pars[,to.area.col] <- t.pars[,from.area.col] * mult
     
-    # update Yrfinal and status fields
-    t.pars$Yrfinal <- as.character(year)
+    # update altyrfn and status fields
+    t.pars$altyrfn <- as.character(year)
     t.pars[,status.col] <- to.status
     
     # update Bin50 field if rebuilds occurrin in 2020
@@ -909,8 +909,8 @@ FillVacant <- function(parcel.df, to.stype, btl.ratio, stock.year, sim.year) {
     # update lotarea field
     sel.par[,to.lotarea.col] <- (sel.par[,from.lotarea.col] - avail.area)
     
-    # update Yrfinal 
-    sel.par$Yrfinal <- sim.year
+    # update altyrfn 
+    sel.par$altyrfn <- sim.year
     
     # if vacancy filled in 2020, update Bin50 field
     if (sim.year == 2020) {
@@ -929,8 +929,8 @@ FillVacant <- function(parcel.df, to.stype, btl.ratio, stock.year, sim.year) {
     # update lotarea field
     sel.par[,to.lotarea.col] <- (sel.par[,from.lotarea.col] - avail.area)
     
-    # update Yrfinal 
-    sel.par$Yrfinal <- sim.year
+    # update altyrfn 
+    sel.par$altyrfn <- sim.year
     
     # if vacancy filled in 2020, update Bin50 field
     if (sim.year == 2020) {

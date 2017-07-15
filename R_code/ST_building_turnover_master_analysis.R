@@ -335,7 +335,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   # percent.data <- 100
   # n <- nrow(cnt.final)
   # pars.to.test <- sample(1:n, (n*(percent.data/100.0)))
-  # 
+  
   # # TEMP: test all parcels of a particular usetype
   # pars.to.test <- which(cnt.final$TYPE == "Food Sale")
   
@@ -360,7 +360,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   
   # change column classes
   cnt.raw.df$TYPE <- as.character(cnt.raw.df$TYPE)
-  cnt.raw.df$Yrfinal <- as.character(cnt.raw.df$Yrfinal)
+  cnt.raw.df$altyrfn <- as.character(cnt.raw.df$altyrfn)
   cnt.raw.df$LOTAREA <- as.numeric(as.character(cnt.raw.df$LOTAREA))
   cnt.raw.df$APN <- as.character(paste(cnt.raw.df$APN))
   cnt.raw.df$Typef <- as.character(cnt.raw.df$Typef)
@@ -466,7 +466,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   cnt.raw.df$Bin50 <- NA
   
   # check for which parcels reamin in 2020
-  cnt.raw.df$Bin20 <- CheckIfRemains(cnt.raw.df$Yrfinal, cnt.raw.df$Cut20)
+  cnt.raw.df$Bin20 <- CheckIfRemains(cnt.raw.df$altyrfn, cnt.raw.df$Cut20)
   
   
   ## Step 4. assign 2020 status labels to parcels
@@ -628,10 +628,10 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
           rebuilt.apn <- res[[2]]
           print(sprintf("Building with APN: %s rebuilt", rebuilt.apn))
          
-          # update BArea.20, Yrfinal and Bin50 fields of rebuild
+          # update BArea.20, altyrfn and Bin50 fields of rebuild
           rebuild <- cnt.raw.df[(cnt.raw.df$APN == rebuilt.apn), ]
           rebuild$BArea.20 <- rebuild$BArea.16
-          rebuild$Yrfinal <- "2020"
+          rebuild$altyrfn <- "2020"
           rebuild$Bin50 <- "1"
           cnt.raw.df[(cnt.raw.df$APN == rebuilt.apn), ] <- rebuild
          
@@ -715,9 +715,9 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
            print(sprintf("Allocated FS from open lot on parcel with APN: %s", 
                          converted.apn))
            
-           # update Yrfinal and Bin50 fields of parcel with converted lot area
+           # update altyrfn and Bin50 fields of parcel with converted lot area
            converted <- cnt.raw.df[(cnt.raw.df$APN == converted.apn), ]
-           converted$Yrfinal <- "2020"
+           converted$altyrfn <- "2020"
            converted$Bin50 <- "1"
            cnt.raw.df[(cnt.raw.df$APN == converted.apn), ] <- converted
            
@@ -916,7 +916,7 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
   cnt.raw.df <- merge(cnt.raw.df, cutoffs.50, by = "TYPE", all.x = T)
   
   # iterate over all parcels, checking if they are demo'd by 2050
-  cnt.raw.df$Bin50 <- CheckIfRemains(cnt.raw.df$Yrfinal, cnt.raw.df$Cut50)
+  cnt.raw.df$Bin50 <- CheckIfRemains(cnt.raw.df$altyrfn, cnt.raw.df$Cut50)
   
   ## Step 4. assign 2020 status labels to parcels
   
@@ -1073,10 +1073,10 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
          rebuilt.apn <- res[[2]]
          print(sprintf("Building with APN: %s rebuilt", rebuilt.apn))
          
-         # update BArea.20, Yrfinal and Bin50 fields of rebuild
+         # update BArea.20, altyrfn and Bin50 fields of rebuild
          rebuild <- cnt.raw.df[(cnt.raw.df$APN == rebuilt.apn), ]
          rebuild$BArea.20 <- rebuild$BArea.16
-         rebuild$Yrfinal <- "2050"
+         rebuild$altyrfn <- "2050"
          rebuild$Bin50 <- "1"
          cnt.raw.df[(cnt.raw.df$APN == rebuilt.apn), ] <- rebuild
          
@@ -1169,9 +1169,9 @@ output.metalist <- foreach(shapefile = in.shapes[1:length(in.shapes)],
            print(sprintf("Allocated FS from open lot on parcel with APN: %s", 
                          converted.apn))
            
-           # update Yrfinal and Bin50 fields of parcel with converted lot area
+           # update altyrfn and Bin50 fields of parcel with converted lot area
            converted <- cnt.raw.df[(cnt.raw.df$APN == converted.apn), ]
-           converted$Yrfinal <- "2050"
+           converted$altyrfn <- "2050"
            cnt.raw.df[(cnt.raw.df$APN == converted.apn), ] <- converted
            
            # check floorspace difference
