@@ -16,6 +16,8 @@ MASTER TODO LIST:
 
 - turn control flow that handles a single county within %dopar% of master into a function that is sourced in a new master script
 
+- ask Hanna about handling parcels with NA BArea (fx.32)
+
 
 7.10.17
 
