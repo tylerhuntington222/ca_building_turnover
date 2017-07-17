@@ -14,7 +14,7 @@ CheckExt <- Vectorize(function(x) {
 
 # define function for checking if a building is demolished (0) or remains (1)
 CheckIfRemains <- Vectorize(function(yr, cut) {
-  if ((yr < cut) & (yr != 0)) {
+  if ((as.numeric(yr) < as.numeric(cut)) & (yr != 0)) {
     return (0)
   } else {
     return (1)
@@ -27,6 +27,11 @@ AssignStatus <- Vectorize(function(BinYEAR, BAREA, LOTAREA, TYPE) {
   # handle NAs in LOTAREA argument
   if (is.na(LOTAREA)) {
     LOTAREA <- 0
+  }
+  
+  # TEMP: handle NAs in BAREA argument -- KEEP THIS?? 
+  if (is.na(BAREA)) {
+    BAREA <- 0
   }
   
   # decision tree for assignments
@@ -44,6 +49,7 @@ AssignStatus <- Vectorize(function(BinYEAR, BAREA, LOTAREA, TYPE) {
 })
 
 CalcEUIVint16 <- Vectorize(function(yr) {
+  yr <- as.numeric(yr)
   if ((yr < 1964) & (yr != 0)) {
     return ("EUI64")
   } else if ((yr < 1979) & (yr > 1963)) {
@@ -69,6 +75,7 @@ CalcEUIVint16 <- Vectorize(function(yr) {
 
 # assign EUIVint codes
 CalcEUIVint20 <- Vectorize(function(yr) {
+  yr <- as.numeric(yr)
   if ((yr < 1964) & (yr != 0)) {
     return ("EUI13")
   } else if ((yr < 1979) & (yr > 1963)) {
@@ -94,6 +101,7 @@ CalcEUIVint20 <- Vectorize(function(yr) {
 
 # assign EUIVint codes
 CalcEUIVint50 <- Vectorize(function(yr) {
+  yr <- as.numeric(yr)
   if ((yr < 1964) & (yr != 0)) {
     return ("EUI13")
   } else if ((yr < 1979) & (yr > 1963)) {
@@ -121,26 +129,24 @@ CalcEUIVint50 <- Vectorize(function(yr) {
 
 # define function for turning a county's summary stats into a 1 row df
 MakeRow <- function(summary.data, county.name, col.name,
-                    template.df, grouping, NAs.to.zeros = T) {
-  
+                    template.df, grouping) {
+
   # merge with template row
   row.df <- merge(template.df, summary.data, 
                   by = grouping, drop = F, all.x = T)
-  rownames(summary.data) <- summary.data[,grouping]
-  row.df <- subset(summary.data, select = col.name)
+  
+  # change NAs and Inf vals to zeros
+  row.df[is.na(row.df[,col.name]), col.name] <- 0
+  row.df[is.infinite(row.df[,col.name]), col.name] <- 0
+  
+  # org output data row
+  rownames(row.df) <- row.df[,grouping]
+  row.df <- subset(row.df, select = col.name)
   row.df <- data.frame(t(row.df))
   ncols <- ncol(row.df)
   row.df$County <- county.name
   row.df <- cbind("County" = row.df$County, row.df[1:ncols])
   
-  # change NA vals to zeros
-  if (NAs.to.zeros) {
-    for (c in 1:ncol(row.df)) {
-      if (is.na(row.df[1, c])) {
-        row.df[1, c] <- 0
-      }
-    }
-  }
   return(row.df)
 }
 
@@ -161,7 +167,6 @@ MakeZeroRow <- function(column.names, county.name) {
 AssignEUIVint <- Vectorize(function(altyrfn, stock.year) {
   
   yr <- substr(stock.year, 3, 4)
-  col.name <- "EUIVint"
   
   # determin which EUIVint calculator function to call
   fun.name <- paste0("CalcEUIVint", yr)
@@ -272,7 +277,7 @@ WriteOutput <- function(data.row, output.filename, sheet.name) {
 
 # define function for recoding year based on AGROUP criteria
 RecodeYear <- Vectorize(function(yr) {
-  
+  yr <- as.numeric(yr)
   if ((yr < 1920) & (yr != 0)) {
     return (1920)
   } else if ((yr >= 1920) & (yr <= 1935)) {
@@ -435,6 +440,7 @@ RebuildMultiplied <- function(parcel.df, stype, from.status, to.status, mult,
   
   # SIDE-EFFECTS: None
   #---------------------------------------------------------------------------#
+  
   yr <- substr(as.character(year), 3, 4)
   status.col <- paste0("Status", yr)
   
@@ -499,7 +505,7 @@ SizeRankedSwitch <- function(parcel.df, from.stype, from.status,
                    (parcel.df[,status.col] == from.status))
   
   # find the parcel with the largest floorspace area
-  lar.par <- which(pool[,area.col] == max(pool[,area.col]))
+  lar.par <- (which(pool[,area.col] == max(pool[,area.col])))[1]
   sel.par <- pool[lar.par,]
   sel.apn <- sel.par$APN
   
@@ -573,7 +579,6 @@ CalcBtlRatio <- function(parcel.df, stype, year) {
   #---------------------------------------------------------------------------#
   
   yr <- substr(as.character(year), 3, 4)
-  status.col <- paste0("Status", yr)
   barea.col <- paste0("BArea.", yr)
   lotarea.col <- paste0("LOTAREA.", yr)
   
@@ -608,6 +613,11 @@ CalcBtlRatio <- function(parcel.df, stype, year) {
     }
   }
   btl.df <- btl.df[!(1:nrow(btl.df) %in% rm.rows), ]
+  
+  # check that there are still vals in df to calc btl ratios
+  if (nrow(btl.df) == 0) {
+    return (0)
+  }
   
   # calc btl vals
   btl.df$btl.ratio <- (btl.df$barea.vals/btl.df$lotarea.vals)
@@ -728,7 +738,7 @@ ConvertLot <- function(parcel.df, stype, btl.ratio, stock.year, sim.year) {
   }
   
   ## select highest ranked parcel
-  top.scoring.pars <- which(pool$dc.score == max(pool$dc.score))
+  top.scoring.pars <- which(pool$dc.score == max(pool$dc.score))[1]
   sel.par <- pool[sample(top.scoring.pars, 1),]
   
   # get apn of selected parcel
@@ -753,7 +763,6 @@ ConvertLot <- function(parcel.df, stype, btl.ratio, stock.year, sim.year) {
     sel.par[,to.lotarea.col] <- (sel.par[,from.lotarea.col] - avail.area)
     
   } else {
-    
     # check that parcel's btl ratio does not already exceed county-usetype mean
     if (btl.par < btl.ratio) {
       
