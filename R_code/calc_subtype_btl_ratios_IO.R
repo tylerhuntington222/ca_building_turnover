@@ -67,9 +67,9 @@ CalcCountyBtl <- function(parcel.df, grouping.col,
   non.outlier.ratios <- ratios[which((ratios >= lower) & (ratios <= upper))]
   
   # calc mean of non-outlier btl ratios
-  mean.btl <- mean(non.outlier.ratios)
+  med.btl <- median(non.outlier.ratios)
   
-  return(mean.btl)
+  return(med.btl)
 }
 
 
@@ -100,11 +100,11 @@ CalcStateBtl <- function(btl.df, type.col) {
     non.outlier.ratios <- ratios[which((ratios >= lower) & (ratios <= upper))]
     
     # calc mean of non-outlier btl ratios
-    mean.btl <- mean(non.outlier.ratios)
+    med.btl <- median(non.outlier.ratios)
     
     # update result df
     res.df <- cbind(res.df, mean.btl)
-    names(res.df)[names(res.df) == "mean.btl"] <- g
+    names(res.df)[names(res.df) == "med.btl"] <- g
   }
   
   return(res.df)
