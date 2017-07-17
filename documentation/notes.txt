@@ -6,11 +6,11 @@ MASTER TODO LIST:
 - adjust RebuildMultiplied() to use stock.year, sim.year convention
 - change AssignAgroup() to use correct yr field
 - make subtypes.df$Typef character class
-- check with Hanna about ConvertLot() and whether this can accept spillover from other subtypes within a parent type, 
+- check with Hanna about ConvertLot() and whether this can accept spillover from other subtypes within a parent type -DONE 
   - currenty configured to do so. 
 - integrate btl ratio handling in case that st level btl not found in main control flow of sims
 
-- slot in GetCountyMultiplier function for determining g.mult.20
+- slot in GetCountyMultiplier function for determining g.mult.20 - DONE
 
 - fix indentations
 
