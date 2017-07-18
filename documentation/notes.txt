@@ -1,14 +1,16 @@
 # NOTES:
 
 MASTER TODO LIST:
+
+- Comment all functions!
 - clean up logical statements that span multiple lines
 - remove spaces around = signs in all function calls
 - adjust RebuildMultiplied() to use stock.year, sim.year convention
-- change AssignAgroup() to use correct yr field
-- make subtypes.df$Typef character class
+- change AssignAgroup() to use correct yr field -DONE
+- make subtypes.df$Typef character class -DONE
 - check with Hanna about ConvertLot() and whether this can accept spillover from other subtypes within a parent type -DONE 
-  - currenty configured to do so. 
-- integrate btl ratio handling in case that st level btl not found in main control flow of sims
+  - currenty configured to do so. -DONE
+- integrate btl ratio handling in case that st level btl not found in main control flow of sims -DONE
 
 - slot in GetCountyMultiplier function for determining g.mult.20 - DONE
 
@@ -46,10 +48,11 @@ model output and your sample spreadsheet
 
 7.11.16 - Meeting with Hanna
 
-- decided to eliminate the square footage diference threshold for usetypes to
-ignore
+- decided to eliminate the square footage diference threshold for usetypes to ignore - DONE
+
 - decided to iterate over subtypes for applying growth multipliers and
-calculating/filling floorspace differences.
+calculating/filling floorspace differences. -DONE
+
 - decided to have two output table files, one with summaries broken down by
 type and one with summaries broken down by usetype
 - decided to use 2016 BtoL ratios throughout future simulations for determining

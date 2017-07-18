@@ -1,118 +1,4 @@
 
-
-CalcCountyBtl <- function(parcel.df, grouping.col, 
-                          group, b.area.col, lot.area.col) {
-  #---------------------------------------------------------------------------#
-  # PURPOSE: calculate the mean bldg area to lot area ratio of a particular 
-  # usetype, within a specific county. 
-  # Omits outliers and zeros in calulation of mean.
-  
-  # PARAMS:
-  # parcel.df - a dataframe of parcel data for the county of interest
-  # group - the parcel subtype for which BtoL ratios are to be calculated
-  # area.col - character string specifying the name of the column containing 
-  # building area vals to use in calculating BtoL ratio
-  
-  
-  # RETURNS: APN code of building that was switched
-  
-  # SIDE-EFFECTS: None
-  #---------------------------------------------------------------------------#
-  
-  # init parcel pool to select from
-  parcel.df[,grouping.col] <- as.character(parcel.df[,grouping.col])
-  pool <- subset(parcel.df, (parcel.df[,grouping.col] == group))
-
-  # get barea and lotarea vals
-  barea.vals <- as.numeric(as.character(pool[,b.area.col]))
-  lotarea.vals <- as.numeric(as.character(pool[,lot.area.col]))
-  
-  if ((length(barea.vals) == 0) | (length(lotarea.vals) == 0)) {
-    return (0)
-  }
-  
-  # make dataframe
-  btl.df <- data.frame(barea.vals, lotarea.vals)
-  
-  # init rm.rows
-  rm.rows <- c(NULL)
-  
-  # elim parcels for which lotarea or barea is 0 or NA
-  for(r in 1:nrow(btl.df)) {
-    par <- btl.df[r,]
-    if ((is.na(par$barea.vals)) | (is.na(par$lotarea.vals))) {
-      rm.rows <- c(rm.rows, r)
-    } else if ((par$barea.vals == 0) |  (par$lotarea.vals == 0)) {
-      rm.rows <- c(rm.rows, r)
-    }
-  }
-  btl.df <- btl.df[!(1:nrow(btl.df) %in% rm.rows), ]
-  
-  # check that there are still vals in df to calc btl ratios
-  if (nrow(btl.df) == 0) {
-    return (0)
-  }
-  
-  # calc btl vals
-  btl.df$btl.ratio <- (btl.df$barea.vals/btl.df$lotarea.vals)
-  
-  # identify outliers
-  iqr <- IQR(btl.df$btl.ratio)
-  first.quant <- quantile(btl.df$btl.ratio)[2]
-  third.quant <- quantile(btl.df$btl.ratio)[4]
-  lower <- first.quant - 1.5 * iqr
-  upper <- third.quant + 1.5 * iqr
-  
-  ratios <- as.numeric(btl.df$btl.ratio)
-  non.outlier.ratios <- ratios[which((ratios >= lower) & (ratios <= upper))]
-  
-  # calc mean of non-outlier btl ratios
-  med.btl <- median(non.outlier.ratios)
-  
-  return(med.btl)
-}
-
-
-
-CalcStateBtl <- function(btl.df, type.col) {
-  
-  groups <- names(btl.df)[2:ncol(btl.df)]
-  
-  # init result df
-  res.df <- data.frame(County = "California")
-  
-  for (g in groups) {
-    # get barea and lotarea vals
-    vals <- btl.df[,g]
-    
-    # drop NAs and zeros
-    vals <- vals[!(is.na(vals))]
-    vals <- vals[vals != 0]
-    
-    # identify outliers
-    iqr <- IQR(vals)
-    first.quant <- quantile(vals)[2]
-    third.quant <- quantile(vals)[4]
-    lower <- first.quant - 1.5 * iqr
-    upper <- third.quant + 1.5 * iqr
-    
-    ratios <- as.numeric(vals)
-    non.outlier.ratios <- ratios[which((ratios >= lower) & (ratios <= upper))]
-    
-    # calc mean of non-outlier btl ratios
-    med.btl <- median(non.outlier.ratios)
-    
-    # update result df
-    res.df <- cbind(res.df, mean.btl)
-    names(res.df)[names(res.df) == "med.btl"] <- g
-  }
-  
-  return(res.df)
-}
-
-
-
-
 #-----------------------------------------------------------------------------#
 # calc_subtype_btl_ratios_IO.R
 
@@ -124,8 +10,8 @@ CalcStateBtl <- function(btl.df, type.col) {
 # Project: California Building Turnover Study
 # Principal Investigator: Hanna Breunig
 
-# PURPOSE: An I/O script to determine the mean/median building to lot ratio for
-# each CA county and then calculate state medians/means by building subtype.
+# PURPOSE: An I/O script to determine the median building to lot ratio for
+# each CA county and then calculate state medians by building subtype.
 # Zeros, null values and outliers, defined as values that are > 1.5*IQR 
 # away from the median are excluded at both the county and state level 
 # calculations
@@ -178,7 +64,7 @@ CalcStateBtl <- function(btl.df, type.col) {
 
 
 ########### LOAD LIBRARIES ############
-packages <- c("ggmap", "raster", "sp", "ggplot2", "rgeos",
+packages <- c("raster", "sp", "ggplot2", "rgeos",
               "spatialEco", "geosphere", "doParallel", "iterators",
               "foreach", "rgdal", "plyr","openxlsx")
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
@@ -215,6 +101,8 @@ rownames(tst.df) <- 1:nrow(tst.df)
 names(tst.df) <- c("Typef", "TYPE")
 tst.df$Typef <- gsub(" ", ".", tst.df$Typef)
 tst.df$TYPE <- gsub(" ", ".", tst.df$TYPE)
+tst.df <- subset(tst.df, tst.df$Typef != "SmOffice")
+
 
 ############ SET PARAMS ############ 
 
@@ -293,7 +181,7 @@ st.btl.df <- foreach (shapefile = in.shapes,
     
     # iterate over subtypes
     for (st in tst.df$Typef) {
-      # calc mean btl
+      # calc median btl
       c.btl <- CalcCountyBtl(c.pars, grouping.col = "Typef", 
                              group = st, b.area.col = "BArea", 
                              lot.area.col = "LOTAREA")
@@ -308,7 +196,7 @@ st.btl.df <- foreach (shapefile = in.shapes,
 stopCluster(cl)
 
 
-# PART II: Calc means by parent types
+# PART II: Calc medians by parent types
 
 # initialize parallel backend
 no.cores <- (detectCores() - 1)
@@ -380,7 +268,7 @@ t.btl.df <- foreach (shapefile = in.shapes,
     
     # iterate over subtypes
     for (t in unique(tst.df$TYPE)) {
-      # calc mean btl
+      # calc median btl
       c.btl <- CalcCountyBtl(c.pars, grouping.col = "TYPE", 
                              group = t, b.area.col = "BArea", 
                              lot.area.col = "LOTAREA")
@@ -396,15 +284,15 @@ t.btl.df <- foreach (shapefile = in.shapes,
 stopCluster(cl)
 
 ## Part 3: calculate state average btl vals for each subtype
-t.btl.means <- CalcStateBtl(t.btl.df)
+t.btl.meds <- CalcStateBtl(t.btl.df)
 
-st.btl.means <- CalcStateBtl(st.btl.df)
+st.btl.meds <- CalcStateBtl(st.btl.df)
 
 
 ## PART 4:
 # rbind state summary stats to county level tables
-types.btl <- rbind(t.btl.df, t.btl.means)
-subtypes.btl <- rbind(st.btl.df, st.btl.means)
+types.btl <- rbind(t.btl.df, t.btl.meds)
+subtypes.btl <- rbind(st.btl.df, st.btl.meds)
 
 # export as excel workbook
 wb <- createWorkbook()
