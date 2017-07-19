@@ -1029,11 +1029,8 @@ GetStateBtl <- function(btl.data, group) {
 }
 
 
-ExportSummaryTables <- function(output.metalist, output.filename) {
-  
-  output.filename <-  "subtype_summary_tables"
-  # init excel spreadsheet for exporting output tables
-  output.filepath <- CreateOutputWorkbook(output.filename)
+ExportSummaryTables <- function(output.metalist, output.filename, 
+                                output.filepath) {
   
   # iterate over output metalist, writing summaries to spreadsheet
   n.counties <- 1:length(output.metalist)

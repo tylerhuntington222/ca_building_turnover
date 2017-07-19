@@ -107,6 +107,11 @@ input.datafile <- "../supp_data/Steps_BuildingStockTurnover_7_6.xlsx"
 
 LoadSuppData(input.datafile)
 
+########## INITIALIZE SPREADSHEET FOR SUMMARY OUTPUTS ##########
+
+output.filename <-  "subtype_summary_tables"
+output.filepath <- CreateOutputWorkbook(output.filename)
+
 ############ LOAD & PROCESS INPUT SHAPEFILES IN PARALLEL ############
 
 # # set up processing que from shapefiles in input_shapefiles dir
@@ -137,7 +142,7 @@ output.metalist <-
 stopCluster(cl)
 
 # write output to excel spreadsheet
-ExportSummaryTables(output.metalist, output.filename)
+ExportSummaryTables(output.metalist, output.filename, output.filepath)
   
 
 # # stop system timer 
